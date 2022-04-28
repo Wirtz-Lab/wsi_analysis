@@ -7,3 +7,5 @@ scikit-image
 scikit-learn
 jupyterlab
 openslide-python
+
+#os.environ['PATH'] = "path-to-openslide-bin" + ";" + os.environ['PATH']
