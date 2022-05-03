@@ -1,11 +1,15 @@
 numpy
 scipy
+natsort
 opencv-python
 matplotlib
 pandas
+xlrd
 scikit-image
 scikit-learn
 jupyterlab
 openslide-python
-
+pyarrow #to save df as feather
+#pytables #to save df as hdf5; use conda to install
+#tensorflow-gpu #use conda to install
 #os.environ['PATH'] = "path-to-openslide-bin" + ";" + os.environ['PATH']

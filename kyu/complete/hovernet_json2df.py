@@ -86,7 +86,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None):
         json['Extent'] = json['contour'].apply(lambda row: cntExtent(row))
         json['EquiDia'] = json['contour'].apply(lambda row: cntEquiDia(row))
 
-        json['imID'] = [imID]*len(json)
+        json['imID'] = [int(imID)]*len(json)
         json.to_pickle(dstfn)
 
 if __name__ == "__main__":
