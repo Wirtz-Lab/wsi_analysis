@@ -1,15 +1,26 @@
 numpy
 scipy
+pillow
 natsort
 opencv-python
 matplotlib
 pandas
-xlrd
+openpyxl
+pyarrow #to save df as feather
 scikit-image
 scikit-learn
 jupyterlab
 openslide-python
-pyarrow #to save df as feather
-#pytables #to save df as hdf5; use conda to install
-#tensorflow-gpu #use conda to install
+docopt
+future
+imgaug
+psutil
+termcolor
+tqdm
+tensorboard
+tensorboardx
+#conda install pytables #to save df as hdf5
+#conda install -c anaconda tensorflow-gpu
 #os.environ['PATH'] = "path-to-openslide-bin" + ";" + os.environ['PATH']
+#conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=11.0 -c pytorch
+
