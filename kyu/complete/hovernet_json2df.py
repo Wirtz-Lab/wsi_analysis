@@ -71,7 +71,6 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
         #read and format json into dataframe
         imID,ext = os.path.splitext(jsonnm)
         dstfn = os.path.join(dst, '{}.pkl'.format(imID))
-        print(dstfn)
         if os.path.exists(dstfn):
             json = pd.read_pickle(dstfn)
             pkls.append(json)
@@ -142,7 +141,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
     #
     pkls = pd.concat(pkls, ignore_index=True)
     pkls.to_feather(os.path.join(dst, '2d_skin_hovernet.ftr'))
-    pkls=pkls[pkls['inroi']>0]
+    pkls=pkls[pkls['inroi']>0].reset_index(drop=True)
     pkls.to_feather(os.path.join(dst, '2d_skin_hovernet_inroi.ftr'))
 
 if __name__ == "__main__":
