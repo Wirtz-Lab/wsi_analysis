@@ -81,6 +81,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
 
     jsons = natsorted([_ for _ in os.listdir(jsonsrc) if _.endswith('.json')])
     jsons = [_ for _ in jsons if not 'duplicate' in _]
+    jsons = jsons[::-1]
     pkls = []
     for idxj,jsonnm in enumerate(jsons): #looping only once
         print(idxj,'/',len(jsons))
