@@ -9,7 +9,8 @@ import cv2
 from sklearn.neighbors import NearestNeighbors
 from skimage.measure import label
 from DLcomposition import DLcomposition
-from dl2distancemap import dl2distancemap
+# from dl2distancemap import dl2distancemap
+from dl2distancemap_byroiv2 import dl2distancemap_byroiv2
 from time import time
 
 def cntarea(cnt):
@@ -67,8 +68,9 @@ def find_resident_area(tissueid, sectionid, dlareas):
     tissueid = tissueid - 1
     return dlareas.loc[sectionid][tissueid]
 
-def find_c2tdist(cnt,dldist,rsfw_ndpi2dl,rsfh_ndpi2dl):
-    distances = [_[int(cnt[1]//rsfh_ndpi2dl),int(cnt[0]//rsfw_ndpi2dl)] for _ in dldist]
+def find_c2tdist(cnt,roiid,dldist,rsfw_ndpi2roi,rsfh_ndpi2roi):
+    distances = [_[int(cnt[1]//rsfh_ndpi2roi),int(cnt[0]//rsfw_ndpi2roi)] for _ in dldist[roiid-1]]
+    distances = [round(_*4) for _ in distances]
     return distances
 
 def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
@@ -112,8 +114,6 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
             rsfw_ndpi2dl = ndpiw / dlw
             rsfh_ndpi2dl = ndpih / dlh
 
-
-
         # query centroid on tissue map to obtain tissue component ID where the cell is contained
             if classify_cell:
                 json['type'] = json['centroid'].apply(lambda row: cellclass(row,dl,rsfw_ndpi2dl,rsfh_ndpi2dl))
@@ -132,6 +132,8 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
                 roiimL = Image.fromarray(roiarrL)
                 #classify section id for each cell
                 json['inroi'] = json['centroid'].apply(lambda centroid: isinroi(centroid, roiimL, rsfw_ndpi2roi, rsfh_ndpi2roi))
+                #eliminate cells not in any roi
+                json = json[json['inroi'] > 0].reset_index(drop=True)
 
                 # calculate resident area
                 dlareas = DLcomposition(roi,dl) #area is confined by roi
@@ -139,10 +141,15 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
 
                 # calculate distance from objects
                 start = time()
-                distmap = dl2distancemap(roi,dl) #11 channel dl distance
+
+                # distmap = dl2distancemap(roi,dl) #11 channel dl distance
+                distmap = dl2distancemap_byroiv2(roi, dl)  # 11 channel dl distance
                 print('calculation time for distance map: ',time()-start)
                 # cell to tissue distance
-                json['c2t_distance'] = json['centroid'].apply(lambda centroid: find_c2tdist(centroid, distmap, rsfw_ndpi2dl, rsfh_ndpi2dl))
+                # need to calculate this by roi
+                # json['c2t_distance'] = json['centroid'].apply(lambda centroid: find_c2tdist(centroid, distmap, rsfw_ndpi2roi, rsfh_ndpi2roi))
+
+                json['c2t_distance'] = json.apply(lambda x: find_c2tdist(x.centroid, x.inroi, distmap, rsfw_ndpi2roi, rsfh_ndpi2roi), axis=1)
                 # json[['Dcorneum','Dspinosum','Dshaft','Dfollicle','Dmuscle','Doil','Dsweat','Dnerve','Dblood','Decm','Dfat']] = pd.DataFrame(json.c2t_distance.tolist())
                 print('tissue ID assigned to each cell')
 
