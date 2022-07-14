@@ -19,8 +19,8 @@ def dl2distancemap_byroiv2(roi,dl):
     dl = dl.resize(roi.size)
     dlarr = np.array(dl)
 
-    minszs = [100000,100000,1000,1000,1000,1000,1000,1000,1000,10000,1000] # 11 elements
-    minszs = [round(_ / 16) for _ in minszs]
+    minszs = [8000,100000,1000,1000,1000,1000,1000,1000,1000,10000,1000] # 11 elements
+    minszs = [round(_ / 16) for _ in minszs] #downscale by 16 from 0.454um/px to 2um/px
 
     # dist_layers = np.repeat(dist_layers[np.newaxis, ...], numsec, axis=0) #pre-allocate stacks for roi #oom issue
     # print(dist_layers.shape) #sanity check for output dimension

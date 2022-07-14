@@ -27,7 +27,7 @@ def cntMA(cnt):
     cnt = np.array(cnt)
     #Orientation, Aspect_ratio
     (x,y),(MA,ma),orientation = cv2.fitEllipse(cnt)
-    return MA,ma,orientation
+    return np.max((MA,ma)),np.min((MA,ma)),orientation
 
 def cntsol(cnt):
     cnt = np.array(cnt)
@@ -55,7 +55,8 @@ def cntEquiDia(cnt):
 
 def cellclass(cnt,dl,rsfw_ndpi2dl,rsfh_ndpi2dl):
     celltype = dl.getpixel((cnt[0]//rsfw_ndpi2dl,cnt[1]//rsfh_ndpi2dl))
-    if celltype == 1: celltype = 2
+    #special cases
+    if celltype == 1: celltype = 2 #corneum cells are epidermal spinousum
     if celltype == 12: celltype =10
     return celltype
 
@@ -69,8 +70,7 @@ def find_resident_area(tissueid, sectionid, dlareas):
     return dlareas.loc[sectionid][tissueid]
 
 def find_c2tdist(cnt,roiid,dldist,rsfw_ndpi2roi,rsfh_ndpi2roi):
-    distances = [_[int(cnt[1]//rsfh_ndpi2roi),int(cnt[0]//rsfw_ndpi2roi)] for _ in dldist[roiid-1]]
-    distances = [round(_*4) for _ in distances]
+    distances = [_[int(cnt[1]//rsfh_ndpi2roi),int(cnt[0]//rsfw_ndpi2roi)].astype(np.float32)*4 for _ in dldist[roiid-1]]
     return distances
 
 def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
@@ -81,7 +81,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
 
     jsons = natsorted([_ for _ in os.listdir(jsonsrc) if _.endswith('.json')])
     jsons = [_ for _ in jsons if not 'duplicate' in _]
-    jsons = jsons[::-1]
+    # jsons = jsons[::-1]
     pkls = []
     for idxj,jsonnm in enumerate(jsons): #looping only once
         print(idxj,'/',len(jsons))
@@ -169,7 +169,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
         nbrs = NearestNeighbors(n_neighbors=3, metric='euclidean').fit(points)
         distances, indices = nbrs.kneighbors(points)
         distance = distances[:, 1]
-        json['dist2nearest'] = distance
+        json['dist2nearest'] = distance/2 #divide by two to go from 20x to 1um/px
 
         json['oriA'] = json['orientation'][indices[:, 1]].reset_index(drop=True)
         json['oriB'] = json['orientation'][indices[:, 2]].reset_index(drop=True)
@@ -178,11 +178,6 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
         print('saved : ', dstfn)
         json.to_pickle(dstfn)
         pkls.append(json)
-    #
-    # pkls = pd.concat(pkls, ignore_index=True)
-    # pkls.to_feather(os.path.join(dst, '2d_skin_hovernet.ftr'))
-    # pkls=pkls[pkls['inroi']>0].reset_index(drop=True)
-    # pkls.to_feather(os.path.join(dst, '2d_skin_hovernet_inroi.ftr'))
 
 if __name__ == "__main__":
     jsonsrc = r'\\fatherserverdw\Q\research\images\skin_aging\wsi\hovernet_out\json'

@@ -145,23 +145,23 @@ IMAGE_SIZE = 1024
 NUM_CLASSES = 13
 BATCH_SIZE = 6
 
-latest1 = tf.train.latest_checkpoint('fold_1')
+latest1 = tf.train.latest_checkpoint(r'\\fatherserverdw\Q\research\source code\deeplabv3_tf_model\fold_1')
 model1 = DeeplabV3Plus(image_size=IMAGE_SIZE, num_classes=NUM_CLASSES)
 model1.load_weights(latest1)
 
-latest2 = tf.train.latest_checkpoint('fold_2')
+latest2 = tf.train.latest_checkpoint(r'\\fatherserverdw\Q\research\source code\deeplabv3_tf_model\fold_2')
 model2 = DeeplabV3Plus(image_size=IMAGE_SIZE, num_classes=NUM_CLASSES)
 model2.load_weights(latest2)
 
-latest3 = tf.train.latest_checkpoint('fold_3')
+latest3 = tf.train.latest_checkpoint(r'\\fatherserverdw\Q\research\source code\deeplabv3_tf_model\fold_3')
 model3 = DeeplabV3Plus(image_size=IMAGE_SIZE, num_classes=NUM_CLASSES)
 model3.load_weights(latest3)
 
-latest4 = tf.train.latest_checkpoint('fold_4')
+latest4 = tf.train.latest_checkpoint(r'\\fatherserverdw\Q\research\source code\deeplabv3_tf_model\fold_4')
 model4 = DeeplabV3Plus(image_size=IMAGE_SIZE, num_classes=NUM_CLASSES)
 model4.load_weights(latest4)
 
-latest5 = tf.train.latest_checkpoint('fold_5')
+latest5 = tf.train.latest_checkpoint(r'\\fatherserverdw\Q\research\source code\deeplabv3_tf_model\fold_5')
 model5 = DeeplabV3Plus(image_size=IMAGE_SIZE, num_classes=NUM_CLASSES)
 model5.load_weights(latest5)
 
