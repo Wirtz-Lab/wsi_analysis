@@ -23,6 +23,7 @@ tensorboardx
 seaborn
 mpldatacursor
 imutils
+svgwrite
 #conda install pytables #to save df as hdf5
 #conda install -c anaconda tensorflow-gpu
 #os.environ['PATH'] = "path-to-openslide-bin" + ";" + os.environ['PATH']
