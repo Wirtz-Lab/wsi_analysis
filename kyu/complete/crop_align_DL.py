@@ -2,7 +2,7 @@ from PIL import Image
 Image.MAX_IMAGE_PIXELS=None
 import numpy as np
 from skimage.measure import label
-from skimage.morphology import closing, square, remove_small_objects, remove_small_holes, binary_dilation
+from skimage.morphology import closing, square, remove_small_objects, remove_small_holes
 from skimage.transform import rotate
 from math import atan2, degrees
 import os
@@ -11,7 +11,7 @@ import cv2
 from time import time
 
 def crop_align_DL(imname):
-    minTA = 10000
+    minTA = 20000
     minTAhole = 100
     minDermhole = 5000
     minepisize=1000
@@ -20,7 +20,7 @@ def crop_align_DL(imname):
     dst = os.path.join(src, 'crop_TA')
     if not os.path.exists(dst): os.mkdir(dst)
     fn, ext = os.path.splitext(os.path.basename(imname))
-    if os.path.exists(os.path.join(dst, '{}_sec{:02d}.png'.format(fn, 4))):
+    if os.path.exists(os.path.join(dst, '{}_sec{:02d}.png'.format(fn, 1))):
         print('continue')
         return
 
@@ -33,7 +33,7 @@ def crop_align_DL(imname):
     TA = np.array(im_resized)
     sure_fg = closing((2 < TA) & (TA < whitespace - 1), square(3))  # 13sec
     sure_fg = remove_small_objects(sure_fg, min_size=minTA, connectivity=2)  # 6sec
-    sure_fg = remove_small_holes(sure_fg, area_threshold=minTAhole / 100).astype(np.uint8)  # 7sec
+    sure_fg = remove_small_holes(sure_fg, area_threshold=minTAhole).astype(np.uint8)  # 7sec
     # define background
     bw = closing(TA < whitespace, square(3))  # 12 is background
     bw = remove_small_objects(bw, min_size=minTA, connectivity=2)
@@ -76,17 +76,20 @@ def crop_align_DL(imname):
         TAtmp[mskbig == 0] = 0 #scale back up to perform rotation #1sec
 
         start = time() # 10sec
-        degrot = np.abs(d0 - 90) # TO-DO: confirm if this is true.
+        # degrot = np.abs(d0 - 90) # TO-DO: confirm if this is true.
+        degrot = d0
+
         mskrot = rotate(TAtmp, degrot, resize=True, preserve_range=True, order=0)  # this is slow
         #can I expedite by not preserving range and recovering original pixel later?
         print(round(time() - start), 'sec elapsed for part A')
 
-        start = time() #
+        start = time()
         [xt, yt] = np.where(mskrot) # mskrot is sometimes not detected
-        [xt2, yt2] = np.where((mskrot == 1) | (mskrot == 2))
         mskrot2 = mskrot[np.min(xt):np.max(xt), np.min(yt):np.max(yt)]
         print(round(time() - start), 'sec elapsed for part B')
-        start = time()  #
+
+        start = time()
+        [xt2, yt2] = np.where((mskrot == 1) | (mskrot == 2))
         if np.mean(xt) - np.mean(xt2) < 0:  # if dermis is above epidermis, flip it
             mskrot2 = np.rot90(np.rot90(mskrot2))
         print(round(time() - start), 'sec elapsed for part C')
@@ -95,6 +98,6 @@ def crop_align_DL(imname):
         print(round(time() - start), 'sec elapsed for part D')
 
         Image.fromarray(mskrot2.astype('int8')).save(
-            os.path.join(dst, '{}_sec{:02d}.png'.format(fn, numsec)))
+            os.path.join(dst, '{}_sec{:02d}_deg_{:d}.png'.format(fn, numsec,round(degrot))))
 
 
