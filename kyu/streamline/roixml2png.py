@@ -14,21 +14,15 @@ def roixml2png(xml_path,imsrc):
     fol,fn = os.path.split(xml_path)
     imfn = fn.replace('xml','ndpi')
     mskdst = os.path.join(fol,'labeledmask_20rsf')
-    dstfn = os.path.join(mskdst, '{}.png'.format(imfn.replace('.ndpi','')))
-
-    TAdst = os.path.join(fol,'TA_20rsf')
-    TAdstfn = os.path.join(TAdst, '{}.png'.format(imfn.replace('.ndpi','')))
-
     if not os.path.exists(mskdst):
         os.mkdir(mskdst)
-    if not os.path.exists(TAdst):
-        os.mkdir(TAdst)
-
+    dstfn = os.path.join(mskdst, '{}.png'.format(imfn.replace('.ndpi','')))
     if os.path.exists(dstfn):
         return
-
-    # if not imfn.replace('ndpi','tif') in os.listdir(r"\\fatherserverdw\kyuex\clue images\1um"):
-    #     return
+    TAdst = os.path.join(fol,'TA_20rsf')
+    if not os.path.exists(TAdst):
+        os.mkdir(TAdst)
+    TAdstfn = os.path.join(TAdst, '{}.png'.format(imfn.replace('.ndpi','')))
 
     print(os.path.basename(xml_path))
     # Open XML file
@@ -56,10 +50,6 @@ def roixml2png(xml_path,imsrc):
             dfs.append(df)
 
     dff = pd.concat(dfs).reset_index(drop=True)
-
-
-
-
 
     slide = OpenSlide(os.path.join(imsrc,imfn))
     rgb_dim = slide.dimensions
