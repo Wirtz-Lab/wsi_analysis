@@ -10,11 +10,9 @@ from openslide import OpenSlide
 from rotate_image import rotate_image
 
 def align_he_dl_cnt(dst,fn,wsisrc,dlsrc,cntsrc,roisrc):
-    mask = Image.open(os.path.join(dlsrc, '{}.{}'.format(fn, 'tif')))
-    ndpi = OpenSlide(os.path.join(wsisrc, '{}.{}'.format(fn, 'ndpi')))
-    json = pd.read_json(os.path.join(cntsrc, '{}.{}'.format(fn, 'json')), orient='index')
     roi = Image.open(os.path.join(roisrc, '{}.{}'.format(fn, 'png')))  # roi is very small
-
+    roiarr = np.array(roi)
+    numsecmax = np.max(roiarr)
     imcropdst = os.path.join(dst, 'imcrop')
     dlcropdst = os.path.join(dst, 'dlcrop')
     nuccropdst = os.path.join(dst, 'nuccrop')
@@ -23,6 +21,13 @@ def align_he_dl_cnt(dst,fn,wsisrc,dlsrc,cntsrc,roisrc):
     if not os.path.exists(dlcropdst): os.mkdir(dlcropdst)
     if not os.path.exists(nuccropdst): os.mkdir(nuccropdst)
 
+    dstfn = fn + 'sec{}'.format(numsecmax) + '.png'
+    if os.path.exists(os.path.join(imcropdst, dstfn)):return
+
+    mask = Image.open(os.path.join(dlsrc, '{}.{}'.format(fn, 'tif')))
+    ndpi = OpenSlide(os.path.join(wsisrc, '{}.{}'.format(fn, 'ndpi')))
+    json = pd.read_json(os.path.join(cntsrc, '{}.{}'.format(fn, 'json')), orient='index')
+
     [x, y] = roi.size
     (w, h) = ndpi.level_dimensions[0]
     rsf = [w / x, h / y]
@@ -30,7 +35,7 @@ def align_he_dl_cnt(dst,fn,wsisrc,dlsrc,cntsrc,roisrc):
 
     json = pd.DataFrame(json[0].loc['nuc']).T.drop(columns=['type_prob'])
     json = json[json['contour'].map(len) > 5].reset_index(drop=True)
-    roiarr = np.array(roi)
+
     def isinroi(row):
         newrow = [round(_ / 16) for _ in row]
         return roiarr[newrow[1], newrow[0]]
@@ -61,7 +66,7 @@ def align_he_dl_cnt(dst,fn,wsisrc,dlsrc,cntsrc,roisrc):
 
     epi2 = epi & ~derm
     epi2 = remove_small_objects(epi2, min_size=minepisize, connectivity=2)
-    numsecmax = np.max(roiarr)
+
 
     fns =[]
     secNs =[]
