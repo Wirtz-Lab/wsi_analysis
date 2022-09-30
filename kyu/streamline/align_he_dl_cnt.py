@@ -8,6 +8,7 @@ import os
 import cv2
 from openslide import OpenSlide
 from rotate_image import rotate_image
+from matplotlib import pyplot as plt
 
 def align_he_dl_cnt(dst,fn,wsisrc,dlsrc,cntsrc,roisrc):
     roi = Image.open(os.path.join(roisrc, '{}.{}'.format(fn, 'png')))  # roi is very small
@@ -100,6 +101,8 @@ def align_he_dl_cnt(dst,fn,wsisrc,dlsrc,cntsrc,roisrc):
         bbox = [np.min(xt), np.max(xt), np.min(yt), np.max(yt)]
         bbox = [round(_) for _ in bbox]
         DLrot = DLtmplarge[bbox[0]:bbox[1], bbox[2]:bbox[3]]  # crop to save memory for practical rotation
+        plt.imshow(DLrot)
+        plt.show()
         DLrot = rotate_image(DLrot, d0)  # rotate
 
         # check if section is upside-down
