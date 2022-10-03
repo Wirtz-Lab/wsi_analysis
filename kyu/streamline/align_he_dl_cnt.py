@@ -53,9 +53,7 @@ def align_he_dl_cnt(dst,fn,wsisrc,dlsrc,cntsrc,roisrc):
     DLsmall = np.array(mask_resized)
     DLinroi = np.multiply(DLsmall, roiarr > 0)
 
-    # create H&E
-    targetlevel = ndpi.get_best_level_for_downsample(rsf)
-    HE = ndpi.read_region(location=(0, 0), level=targetlevel, size=ndpi.level_dimensions[targetlevel])
+
 
     minDermhole = 5000
     minepisize = 1000
@@ -80,7 +78,19 @@ def align_he_dl_cnt(dst,fn,wsisrc,dlsrc,cntsrc,roisrc):
         roitmp = roiarr == numsec  # roitmp is logical, not greyscale
         mskepi = roitmp & epi2
         DLtmp = np.multiply(DLinroi, roitmp)  # roiscale
-        HEtmp = np.multiply(np.array(HE)[:, :, :3], np.repeat(roitmp[:, :, np.newaxis], 3, axis=2))  # roiscale
+
+        # create H&E
+        [xroi, yroi] = np.where(roitmp)
+        bboxroi = [np.min(xroi), np.max(xroi), np.min(yroi), np.max(yroi)]
+        roitmp2 = roitmp[bboxroi[0]:bboxroi[1], bboxroi[2]:bboxroi[3]]
+
+        bboxroi = [round(_ * rsf) for _ in bboxroi]
+        # targetlevel = ndpi.get_best_level_for_downsample(rsf)
+        HE = ndpi.read_region(location=(bboxroi[2], bboxroi[0]), level=0, size=(bboxroi[3]-bboxroi[2],bboxroi[1]-bboxroi[0]))
+        roitmp2 = cv2.resize(roitmp2.astype(np.uint8), dsize=HE.size, interpolation=cv2.INTER_NEAREST)
+        kernel = np.ones((5, 5), np.uint8)
+        roitmp2 = cv2.dilate(roitmp2, kernel, iterations=1)
+        HEtmp = np.multiply(np.array(HE)[:, :, :3], np.repeat(roitmp2[:, :, np.newaxis], 3, axis=2))  # roiscale
 
         # align horizontal
         [xt0, yt0] = np.where(mskepi)
@@ -101,9 +111,9 @@ def align_he_dl_cnt(dst,fn,wsisrc,dlsrc,cntsrc,roisrc):
         bbox = [np.min(xt), np.max(xt), np.min(yt), np.max(yt)]
         bbox = [round(_) for _ in bbox]
         DLrot = DLtmplarge[bbox[0]:bbox[1], bbox[2]:bbox[3]]  # crop to save memory for practical rotation
-        plt.imshow(DLrot)
-        plt.show()
-        DLrot = rotate_image(DLrot, d0)  # rotate
+
+        try:DLrot = rotate_image(DLrot, d0)  # size of an input and output images should be less than 32767x32767
+        except:return [DLrot,d0]
 
         # check if section is upside-down
         [xderm, yderm] = np.where(DLrot)
@@ -124,19 +134,21 @@ def align_he_dl_cnt(dst,fn,wsisrc,dlsrc,cntsrc,roisrc):
         nucrot = nucrot[bbox2[0]:bbox2[1], bbox2[2]:bbox2[3]]  # crop
 
         # crop HE
-        bboxsmall = [round(_ / rsf) for _ in bbox]
-        bboxsmall2 = [round(_ / rsf) for _ in bbox2]
-        HEtmp = HEtmp[bboxsmall[0]:bboxsmall[1], bboxsmall[2]:bboxsmall[3]]  # crop
+        # bboxsmall = [round(_ / rsf) for _ in bbox]
+        # bboxsmall2 = [round(_ / rsf) for _ in bbox2]
+        HEtmp = HEtmp[bbox[0]:bbox[1], bbox[2]:bbox[3]]  # crop
         HErot = rotate_image(HEtmp, d0)  # rotate
-        HErot = HErot[bboxsmall2[0]:bboxsmall2[1], bboxsmall2[2]:bboxsmall2[3]]  # crop
+        HErot = HErot[bbox2[0]:bbox2[1], bbox2[2]:bbox2[3]]  # crop
         HErot[HErot == 0] = 235
-        HEbig = cv2.resize(HErot.astype(np.uint8), dsize=[_ for _ in DLrot.shape][::-1],
-                           interpolation=cv2.INTER_NEAREST)
+        # HEbig = cv2.resize(HErot.astype(np.uint8), dsize=[_ for _ in DLrot.shape][::-1],
+        #                    interpolation=cv2.INTER_NEAREST)
+        if not HErot.shape[:-1] == DLrot.shape:
+            raise "need to check cropping"
 
         dstfn = fn + 'sec{}'.format(numsec) + '.png'
 
         # save images
-        Image.fromarray(HEbig).save(
+        Image.fromarray(HErot).save(
             os.path.join(imcropdst, dstfn))
         Image.fromarray(DLrot.astype('uint32')).save(
             os.path.join(dlcropdst, dstfn))
