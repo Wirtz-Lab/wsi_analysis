@@ -88,15 +88,11 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
         #read and format json into dataframe
         imID,ext = os.path.splitext(jsonnm)
         dstfn = os.path.join(dst, '{}.pkl'.format(imID))
-        # if os.path.exists(dstfn):
-        #     json = pd.read_pickle(dstfn)
-        #     pkls.append(json)
-        #     continue
         json = os.path.join(jsonsrc, jsonnm)
         try:
             json = pd.read_json(json, orient='index')
         except:
-            print('error')
+            print('cant read json')
             continue
         json = pd.DataFrame(json[0].loc['nuc']).T.drop(columns=['type_prob'])
         json = json[json['contour'].map(len) > 5].reset_index(drop=True)
@@ -109,7 +105,11 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
 
             dlnm = jsonnm.replace(ext, '.tif')
             dl = os.path.join(dlsrc, dlnm)
-            dl = Image.open(dl)
+            try:
+                dl = Image.open(dl)
+            except:
+                print('cant read dlmask',dlnm)
+                continue
             dlw, dlh = dl.size
 
             rsfw_ndpi2dl = ndpiw / dlw
@@ -121,8 +121,12 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
                 print('celltype classified')
 
             if mask_roi:
-                roinm = jsonnm.replace(ext, '_tissue_binary.tif')
-                roi = Image.open(os.path.join(roisrc, roinm))
+                roinm = jsonnm.replace(ext, 'png')
+                try:
+                    roi = Image.open(os.path.join(roisrc, roinm))
+                except:
+                    print('cant read roi',roinm)
+                    continue
                 roiw, roih = roi.size
                 rsfw_ndpi2roi = ndpiw / roiw
                 rsfh_ndpi2roi = ndpih / roih
@@ -177,7 +181,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
             ['orientation', 'oriA', 'oriB']].mean(axis=1)
         print('saved : ', dstfn)
         json.to_pickle(dstfn)
-        pkls.append(json)
+        # pkls.append(json)
 
 if __name__ == "__main__":
     jsonsrc = r'\\fatherserverdw\kyuex\clue images\hovernet_out\json'
