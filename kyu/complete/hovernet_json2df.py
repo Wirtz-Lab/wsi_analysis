@@ -180,8 +180,9 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
         pkls.append(json)
 
 if __name__ == "__main__":
-    jsonsrc = r'\\fatherserverdw\Q\research\images\skin_aging\wsi\hovernet_out\json'
-    dlsrc = r'\\fatherserverdw\Q\research\images\skin_aging\1um\classification_v9_combined'
-    roisrc = r'\\fatherserverdw\Q\research\images\skin_aging\annotation\roi\tif'
-    ndpisrc = r'\\fatherserverdw\Q\research\images\skin_aging\wsi'
+    jsonsrc = r'\\fatherserverdw\kyuex\clue images\hovernet_out\json'
+    dlsrc = r'\\fatherserverdw\kyuex\clue images\1um\classification_v9_combined'
+    ndpisrc = r'\\fatherserverdw\kyuex\clue images'
+    roisrc = r'\\fatherserverdw\kyuex\clue images\annotations\roi\labeledmask_20rsf'
+
     hovernet_json2df(jsonsrc,ndpisrc,dlsrc,roisrc)
