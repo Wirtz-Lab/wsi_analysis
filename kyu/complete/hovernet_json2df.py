@@ -94,6 +94,23 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
         except:
             print('cant read json')
             continue
+
+        if mask_roi:
+            roinm = jsonnm.replace(ext, '.png')
+            try:
+                roi = Image.open(os.path.join(roisrc, roinm))
+            except:
+                print('cant read roi', roinm)
+                continue
+
+        dlnm = jsonnm.replace(ext, '.tif')
+        dl = os.path.join(dlsrc, dlnm)
+        try:
+            dl = Image.open(dl)
+        except:
+            print('cant read dlmask', dlnm)
+            continue
+
         json = pd.DataFrame(json[0].loc['nuc']).T.drop(columns=['type_prob'])
         json = json[json['contour'].map(len) > 5].reset_index(drop=True)
 
@@ -103,13 +120,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
             ndpi = OpenSlide(os.path.join(ndpisrc, ndpinm))
             ndpiw, ndpih = ndpi.dimensions
 
-            dlnm = jsonnm.replace(ext, '.tif')
-            dl = os.path.join(dlsrc, dlnm)
-            try:
-                dl = Image.open(dl)
-            except:
-                print('cant read dlmask',dlnm)
-                continue
+
             dlw, dlh = dl.size
 
             rsfw_ndpi2dl = ndpiw / dlw
@@ -121,12 +132,6 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
                 print('celltype classified')
 
             if mask_roi:
-                roinm = jsonnm.replace(ext, 'png')
-                try:
-                    roi = Image.open(os.path.join(roisrc, roinm))
-                except:
-                    print('cant read roi',roinm)
-                    continue
                 roiw, roih = roi.size
                 rsfw_ndpi2roi = ndpiw / roiw
                 rsfh_ndpi2roi = ndpih / roih
