@@ -81,23 +81,37 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
 
     jsons = natsorted([_ for _ in os.listdir(jsonsrc) if _.endswith('.json')])
     jsons = [_ for _ in jsons if not 'duplicate' in _]
-    # jsons = jsons[::-1]
+    jsons = jsons[::-1]
     pkls = []
     for idxj,jsonnm in enumerate(jsons): #looping only once
         print(idxj,'/',len(jsons))
         #read and format json into dataframe
         imID,ext = os.path.splitext(jsonnm)
         dstfn = os.path.join(dst, '{}.pkl'.format(imID))
-        # if os.path.exists(dstfn):
-        #     json = pd.read_pickle(dstfn)
-        #     pkls.append(json)
-        #     continue
+        if os.path.exists(dstfn): continue
         json = os.path.join(jsonsrc, jsonnm)
         try:
             json = pd.read_json(json, orient='index')
         except:
-            print('error')
+            print('cant read json')
             continue
+
+        if mask_roi:
+            roinm = jsonnm.replace(ext, '.png')
+            try:
+                roi = Image.open(os.path.join(roisrc, roinm))
+            except:
+                print('cant read roi', roinm)
+                continue
+
+        dlnm = jsonnm.replace(ext, '.tif')
+        dl = os.path.join(dlsrc, dlnm)
+        try:
+            dl = Image.open(dl)
+        except:
+            print('cant read dlmask', dlnm)
+            continue
+
         json = pd.DataFrame(json[0].loc['nuc']).T.drop(columns=['type_prob'])
         json = json[json['contour'].map(len) > 5].reset_index(drop=True)
 
@@ -107,9 +121,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
             ndpi = OpenSlide(os.path.join(ndpisrc, ndpinm))
             ndpiw, ndpih = ndpi.dimensions
 
-            dlnm = jsonnm.replace(ext, '.tif')
-            dl = os.path.join(dlsrc, dlnm)
-            dl = Image.open(dl)
+
             dlw, dlh = dl.size
 
             rsfw_ndpi2dl = ndpiw / dlw
@@ -121,18 +133,16 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
                 print('celltype classified')
 
             if mask_roi:
-                roinm = jsonnm.replace(ext, '_tissue_binary.tif')
-                roi = Image.open(os.path.join(roisrc, roinm))
                 roiw, roih = roi.size
                 rsfw_ndpi2roi = ndpiw / roiw
                 rsfh_ndpi2roi = ndpih / roih
 
                 #label and convert back to pillow image
-                roiarr = np.array(roi)
-                roiarrL = label(roiarr)
-                roiimL = Image.fromarray(roiarrL)
+                # roiarr = np.array(roi)
+                # roiarrL = label(roiarr)
+                # roiimL = Image.fromarray(roiarrL)
                 #classify section id for each cell
-                json['inroi'] = json['centroid'].apply(lambda centroid: isinroi(centroid, roiimL, rsfw_ndpi2roi, rsfh_ndpi2roi))
+                json['inroi'] = json['centroid'].apply(lambda centroid: isinroi(centroid, roi, rsfw_ndpi2roi, rsfh_ndpi2roi))
                 #eliminate cells not in any roi
                 json = json[json['inroi'] > 0].reset_index(drop=True)
 
@@ -177,11 +187,12 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
             ['orientation', 'oriA', 'oriB']].mean(axis=1)
         print('saved : ', dstfn)
         json.to_pickle(dstfn)
-        pkls.append(json)
+        # pkls.append(json)
 
 if __name__ == "__main__":
-    jsonsrc = r'\\fatherserverdw\Q\research\images\skin_aging\wsi\hovernet_out\json'
-    dlsrc = r'\\fatherserverdw\Q\research\images\skin_aging\1um\classification_v9_combined'
-    roisrc = r'\\fatherserverdw\Q\research\images\skin_aging\annotation\roi\tif'
-    ndpisrc = r'\\fatherserverdw\Q\research\images\skin_aging\wsi'
+    jsonsrc = r'\\fatherserverdw\kyuex\clue images\hovernet_out\json'
+    dlsrc = r'\\fatherserverdw\kyuex\clue images\1um\classification_v9_combined'
+    ndpisrc = r'\\fatherserverdw\kyuex\clue images'
+    roisrc = r'\\fatherserverdw\kyuex\clue images\annotations\roi\labeledmask_20rsf'
+
     hovernet_json2df(jsonsrc,ndpisrc,dlsrc,roisrc)
