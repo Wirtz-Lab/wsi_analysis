@@ -82,19 +82,10 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
     jsons = natsorted([_ for _ in os.listdir(jsonsrc) if _.endswith('.json')])
     jsons = [_ for _ in jsons if not 'duplicate' in _]
     jsons = jsons[::-1]
-    pkls = []
+    # pkls = []
     for idxj,jsonnm in enumerate(jsons): #looping only once
         print(idxj,'/',len(jsons))
-        #read and format json into dataframe
-        imID,ext = os.path.splitext(jsonnm)
-        dstfn = os.path.join(dst, '{}.pkl'.format(imID))
-        if os.path.exists(dstfn): continue
-        json = os.path.join(jsonsrc, jsonnm)
-        try:
-            json = pd.read_json(json, orient='index')
-        except:
-            print('cant read json')
-            continue
+        imID, ext = os.path.splitext(jsonnm)
 
         if mask_roi:
             roinm = jsonnm.replace(ext, '.png')
@@ -103,6 +94,16 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
             except:
                 print('cant read roi', roinm)
                 continue
+
+        #read and format json into dataframe
+        dstfn = os.path.join(dst, '{}.pkl'.format(imID))
+        if os.path.exists(dstfn): continue
+        json = os.path.join(jsonsrc, jsonnm)
+        try:
+            json = pd.read_json(json, orient='index')
+        except:
+            print('cant read json')
+            continue
 
         dlnm = jsonnm.replace(ext, '.tif')
         dl = os.path.join(dlsrc, dlnm)
@@ -173,7 +174,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
         json['Sol'] = json['contour'].apply(lambda row: cntsol(row))
         json['Extent'] = json['contour'].apply(lambda row: cntExtent(row))
         json['EquiDia'] = json['contour'].apply(lambda row: cntEquiDia(row)) # sqrt(4*Area/pi).
-        json['imID'] = [int(imID)]*len(json)
+        json['imID'] = [imID]*len(json)
 
         points = pd.DataFrame(json.centroid.tolist()).astype('int')
         nbrs = NearestNeighbors(n_neighbors=3, metric='euclidean').fit(points)
