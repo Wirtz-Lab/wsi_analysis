@@ -81,13 +81,14 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
 
     jsons = natsorted([_ for _ in os.listdir(jsonsrc) if _.endswith('.json')])
     jsons = [_ for _ in jsons if not 'duplicate' in _]
-    # jsons = jsons[::-1]
+    jsons = jsons[::-1]
     pkls = []
     for idxj,jsonnm in enumerate(jsons): #looping only once
         print(idxj,'/',len(jsons))
         #read and format json into dataframe
         imID,ext = os.path.splitext(jsonnm)
         dstfn = os.path.join(dst, '{}.pkl'.format(imID))
+        if os.path.exists(dstfn): continue
         json = os.path.join(jsonsrc, jsonnm)
         try:
             json = pd.read_json(json, orient='index')
@@ -137,11 +138,11 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
                 rsfh_ndpi2roi = ndpih / roih
 
                 #label and convert back to pillow image
-                roiarr = np.array(roi)
-                roiarrL = label(roiarr)
-                roiimL = Image.fromarray(roiarrL)
+                # roiarr = np.array(roi)
+                # roiarrL = label(roiarr)
+                # roiimL = Image.fromarray(roiarrL)
                 #classify section id for each cell
-                json['inroi'] = json['centroid'].apply(lambda centroid: isinroi(centroid, roiimL, rsfw_ndpi2roi, rsfh_ndpi2roi))
+                json['inroi'] = json['centroid'].apply(lambda centroid: isinroi(centroid, roi, rsfw_ndpi2roi, rsfh_ndpi2roi))
                 #eliminate cells not in any roi
                 json = json[json['inroi'] > 0].reset_index(drop=True)
 

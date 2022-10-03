@@ -7,8 +7,8 @@ import numpy as np
 def DLcomposition(roi,dl):
     # Input: roi, dl pillow images
     roi = roi.resize(dl.size)
-    roiarr = np.array(roi)
-    roiarrL = label(roiarr)
+    roiarrL = np.array(roi)
+    # roiarrL = label(roiarr)
     dlarr = np.array(dl)
     df = []
     for roi in np.unique(roiarrL):
