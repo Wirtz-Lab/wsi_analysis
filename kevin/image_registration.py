@@ -166,6 +166,12 @@ print("time it took to register: "+  str(end-start) + " seconds")
 start = time()
 
 for idx in range(num_minus1,-1,-1): #idx = 15 to -1 (not including -1)
+    # declare destination file name, check if it exists already, continue if so
+    dst = r'\\fatherserverdw\Kevin\imageregistration\registered_images'
+    dstfn = os.path.join(dst,img_files_path[idx-1])
+    if os.path.exists(dstfn):
+        continue
+
     if idx == 0:
         break
     ref_img_path = os.path.join(r'\\fatherserverdw\Kevin\imageregistration\registered_images', img_files_path[idx])
@@ -188,7 +194,9 @@ for idx in range(num_minus1,-1,-1): #idx = 15 to -1 (not including -1)
     b = np.array(mov_img_warp_ra[2]*255).astype('uint8')
     rgb = np.stack([r,g,b],axis=2)
     reg_img = Image.fromarray(rgb)
-    reg_img.save(r'\\fatherserverdw\Kevin\imageregistration\registered_images\\' + str(img_files_path[idx-1]) + '.png')
+
+    reg_img.save(dstfn)
+
 
 end = time()
 print("time it took to register: "+  str(end-start) + " seconds")
