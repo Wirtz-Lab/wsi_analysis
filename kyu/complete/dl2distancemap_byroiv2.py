@@ -11,8 +11,8 @@ from skimage.measure import label
 # must scale down input image to avoid crazy processing time
 def dl2distancemap_byroiv2(roi,dl):
 
-    roiarr = np.array(roi)
-    roiimL = label(roiarr)
+    roiimL = np.array(roi)
+    # roiimL = label(roiarr)
     numsec = np.max(roiimL)
 
     #we are gonna resize dl to roi size for faster calculations
