@@ -1,3 +1,4 @@
+
 import os
 import pandas as pd
 from natsort import natsorted
@@ -76,11 +77,15 @@ def find_c2tdist(cnt,roiid,dldist,rsfw_ndpi2roi,rsfh_ndpi2roi):
 def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
     classify_cell = True
     mask_roi = True
-    dst = os.path.join(os.path.dirname(jsonsrc), 'df')
+    dst = os.path.join(os.path.dirname(jsonsrc), 'dfv2')
     if not os.path.exists(dst): os.mkdir(dst)
 
     jsons = natsorted([_ for _ in os.listdir(jsonsrc) if _.endswith('.json')])
-    jsons = [_ for _ in jsons if not 'duplicate' in _]
+    # jsons = [_ for _ in jsons if not 'duplicate' in _]
+    # jsons = [_ for _ in jsons if not '156' in _]
+    # jsons = [_ for _ in jsons if not '167' in _]
+    jsons = ['37.json']
+
     # jsons = jsons[::-1]
     pkls = []
     for idxj,jsonnm in enumerate(jsons): #looping only once
@@ -136,7 +141,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
                 #eliminate cells not in any roi
                 json = json[json['inroi'] > 0].reset_index(drop=True)
 
-                # calculate resident area
+                # calculate resident area #TO-DO resident area is composition of a section; shouldn't it be area of connected component in which the cell reside?
                 dlareas = DLcomposition(roi,dl) #area is confined by roi
                 json['resident_area'] = json.apply(lambda x: find_resident_area(x.type, x.inroi, dlareas), axis=1)
 
