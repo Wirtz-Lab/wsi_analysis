@@ -8,23 +8,28 @@ from openslide import OpenSlide
 from PIL import Image
 Image.MAX_IMAGE_PIXELS=None
 from skimage.morphology import closing, square, remove_small_objects, remove_small_holes
-
+from time import time
 def roixml2png(xml_path,imsrc):
     # try:
+    start = time()
+    print(os.path.basename(xml_path))
+
     fol,fn = os.path.split(xml_path)
     imfn = fn.replace('xml','ndpi')
     mskdst = os.path.join(fol,'labeledmask_20rsf')
     if not os.path.exists(mskdst):
         os.mkdir(mskdst)
+
     dstfn = os.path.join(mskdst, '{}.png'.format(imfn.replace('.ndpi','')))
     if os.path.exists(dstfn):
         return
+
     TAdst = os.path.join(fol,'TA_20rsf')
     if not os.path.exists(TAdst):
         os.mkdir(TAdst)
     TAdstfn = os.path.join(TAdst, '{}.png'.format(imfn.replace('.ndpi','')))
 
-    print(os.path.basename(xml_path))
+
     # Open XML file
     tree = ET.parse(xml_path)
     root = tree.getroot()
@@ -91,5 +96,5 @@ def roixml2png(xml_path,imsrc):
     #     ratio = 0
     #     ROIA = 0
     #     TA = 0
-    #     print('create roi for ',fn)
+    print('create roi for ',fn,'_elapsed sec:',round(time()-start))
     return [fn,ROIA,TA,ratio]
