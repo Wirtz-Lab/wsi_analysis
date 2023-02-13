@@ -49,18 +49,18 @@ def crop_align_DL(imsrc,dlsrc,roisrc):
     whitespace = 12
 
     if roiflag:
-        imdst = os.path.join(imsrc, 'imcrop_roiv2')
+        imdst = os.path.join(imsrc, 'kevin_imcrop_roiv2')
         if not os.path.exists(imdst): os.mkdir(imdst)
-        imdst2 = os.path.join(imdst, 'imcrop_roi_10umv2')
+        imdst2 = os.path.join(imdst, 'kevin_imcrop_roi_10umv2')
         if not os.path.exists(imdst2): os.mkdir(imdst2)
-        dldst = os.path.join(dlsrc, 'dlcrop_roiv2')
+        dldst = os.path.join(dlsrc, 'kevin_dlcrop_roiv2')
         if not os.path.exists(dldst): os.mkdir(dldst)
     else:
-        imdst = os.path.join(imsrc, 'imcropv2')
+        imdst = os.path.join(imsrc, 'kevin_imcropv2')
         if not os.path.exists(imdst): os.mkdir(imdst)
-        imdst2 = os.path.join(imdst, 'imcrop_10umv2')
+        imdst2 = os.path.join(imdst, 'kevin_imcrop_10umv2')
         if not os.path.exists(imdst2): os.mkdir(imdst2)
-        dldst = os.path.join(dlsrc, 'dlcropv2')
+        dldst = os.path.join(dlsrc, 'kevin_dlcropv2')
         if not os.path.exists(dldst): os.mkdir(dldst)
 
     imlist = [os.path.join(imsrc, _) for _ in os.listdir(imsrc) if _.endswith('tif')]
