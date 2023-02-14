@@ -67,14 +67,14 @@ def crop_align_DL(imsrc,dlsrc,roisrc):
     imlist = natsorted(imlist)
     dllist = natsorted(dllist)
 
-    df = []
-    # kevin's insertion of code: (check if length&order of dllist and imlist is same, otherwise make it equal:
+    # kevin's insertion of code: (check if length&order of dllist and imlist is same, otherwise make it equal):
     if imlist != dllist:
         inter = set(imlist).intersection(dllist)
         imlist = list(inter)
         dllist = list(inter)
 
-    print("hi")
+    df = []
+
     for idx,(imname,dlname) in enumerate(zip(imlist,dllist)):
         start = time()
 
