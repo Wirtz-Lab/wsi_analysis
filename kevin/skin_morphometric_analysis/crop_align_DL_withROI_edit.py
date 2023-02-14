@@ -41,7 +41,6 @@ def rotate_image_cv2(mat, angle):
 
 def crop_align_DL(imsrc,dlsrc,roisrc):
     roiflag = True
-
     minTA = 20000
     minTAhole = 100
     minDermhole = 5000
@@ -68,14 +67,14 @@ def crop_align_DL(imsrc,dlsrc,roisrc):
     imlist = natsorted(imlist)
     dllist = natsorted(dllist)
 
-    #kevin's insertion of code: (check if length&order of dllist and imlist is same, otherwise make it equal:
+    df = []
+    # kevin's insertion of code: (check if length&order of dllist and imlist is same, otherwise make it equal:
     if imlist != dllist:
         inter = set(imlist).intersection(dllist)
         imlist = list(inter)
         dllist = list(inter)
 
-
-    df = []
+    print("hi")
     for idx,(imname,dlname) in enumerate(zip(imlist,dllist)):
         start = time()
 
