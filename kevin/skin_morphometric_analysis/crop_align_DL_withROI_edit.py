@@ -39,7 +39,7 @@ def rotate_image_cv2(mat, angle):
     return rotated_mat
 
 
-def crop_align_DL(imsrc,dlsrc,roisrc):
+def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
     roiflag = True
     minTA = 20000
     minTAhole = 100
@@ -62,22 +62,35 @@ def crop_align_DL(imsrc,dlsrc,roisrc):
         dldst = os.path.join(dlsrc, 'kevin_dlcropv2')
         if not os.path.exists(dldst): os.mkdir(dldst)
 
-    imlist = [os.path.join(imsrc, _) for _ in os.listdir(imsrc) if _.endswith('tif')]
-    dllist = [os.path.join(dlsrc, _) for _ in os.listdir(dlsrc) if _.endswith('tif')]
+    imlist = [_ for _ in os.listdir(imsrc) if _.endswith('tif')]
+    dllist = [_ for _ in os.listdir(dlsrc) if _.endswith('tif')]
+    imlist = [os.path.basename(x) for x in imlist]
+    dllist = [os.path.basename(x) for x in dllist]
+    dllist = [x.replace(".tif", "") for x in dllist]
+    imlist = [x.replace(".tif", "") for x in imlist]
     imlist = natsorted(imlist)
     dllist = natsorted(dllist)
+    inter = [_ for _ in imlist if _ in dllist]
 
-    # kevin's insertion of code: (check if length&order of dllist and imlist is same, otherwise make it equal):
-    if imlist != dllist:
-        inter = set(imlist).intersection(dllist)
-        imlist = list(inter)
-        dllist = list(inter)
+    xl = pd.read_excel(xlsrc)
+    healthy = list(xl["roi_mask_filepath"]) #get file path, this one already has all the healthy files
+    healthy_list = [x for x in healthy if x.endswith(".png")]
+    healthy_list = [os.path.basename(x) for x in healthy_list]
+    healthy_list = [x.replace(".png", "") for x in healthy_list]
+    inter2 = [_ for _ in inter if _ in healthy_list] # intersection b/w imlist/dllist and healthy_list
+    inter2 = natsorted(inter2)
+    imlist = [os.path.join(imsrc, _) for _ in inter2]
+    dllist = [os.path.join(dlsrc, _) for _ in inter2]
+    imlist = [x + ".tif" for x in imlist]
+    dllist = [x + ".tif" for x in dllist]
+
+    if not len(imlist) == len(dllist):
+        raise Exception("imlist and dllist length unequal.")
 
     df = []
 
     for idx,(imname,dlname) in enumerate(zip(imlist,dllist)):
         start = time()
-
 
         imfn, ext = os.path.splitext(os.path.basename(imname))
         dlfn, ext = os.path.splitext(os.path.basename(dlname))
@@ -155,7 +168,11 @@ def crop_align_DL(imsrc,dlsrc,roisrc):
                 msktmp = np.multiply(msktmp, roi2 > 0)
             if not msktmp.any():
                 print('non healthy section,',numsec)
+                # healthy_tissue = False
                 continue
+            # else:
+            #     healthy_tissue = True
+
             # align horizontal
             [xt2, yt2] = np.where(mskepi)
             vertices = np.array([xt2[::10], yt2[::10]]).T
@@ -228,8 +245,12 @@ def crop_align_DL(imsrc,dlsrc,roisrc):
             #     d0=777
             #     d0special=False
             #     d0Flip=False
-            df.append({'imID': idx, 'imname': imfn, 'secN': numsec, 'k': k.flatten(), 'degrot': round(d0, 2), 'd0special':d0special, 'd0Flip':d0Flip})
+            if not msktmp.any():
+                healthy_tissue = False
+            else:
+                healthy_tissue = True
+            df.append({'imID': idx, 'imname': imfn, 'secN': numsec, 'k': k.flatten(), 'degrot': round(d0, 2), 'd0special':d0special, 'd0Flip':d0Flip, 'healthy_tissue': healthy_tissue})
             df2 = pd.DataFrame(df)
-            df2.to_csv(os.path.join(imdst, 'CLUE_rotation_LUT.csv'))
+            df2.to_excel(os.path.join(imdst, 'CLUE_rotation_LUT.xlsx'))
 
 
