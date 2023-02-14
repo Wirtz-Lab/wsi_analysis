@@ -68,6 +68,13 @@ def crop_align_DL(imsrc,dlsrc,roisrc):
     imlist = natsorted(imlist)
     dllist = natsorted(dllist)
 
+    #kevin's insertion of code: (check if length&order of dllist and imlist is same, otherwise make it equal:
+    if imlist != dllist:
+        inter = set(imlist).intersection(dllist)
+        imlist = list(inter)
+        dllist = list(inter)
+
+
     df = []
     for idx,(imname,dlname) in enumerate(zip(imlist,dllist)):
         start = time()
@@ -90,6 +97,9 @@ def crop_align_DL(imsrc,dlsrc,roisrc):
         im = Image.open(imname)
 
         if not im.size == dl.size:
+            print("im size is",im.size)
+            print("dl size is",dl.size)
+
             raise Exception("im and dl dimensions do not match")
 
         TAbig = np.array(dl)
