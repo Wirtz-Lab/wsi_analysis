@@ -90,6 +90,7 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
     df = []
 
     for idx,(imname,dlname) in enumerate(zip(imlist,dllist)):
+        roi_numsec = 0
         start = time()
 
         imfn, ext = os.path.splitext(os.path.basename(imname))
@@ -152,7 +153,7 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
         derm = remove_small_holes(derm, area_threshold=minDermhole)
         epi2 = epi & ~derm
         epi2 = remove_small_objects(epi2, min_size=minepisize, connectivity=2)
-        numsecmax = np.max(label_image)
+        numsecmax = np.max(label_image) #label_image = entire raw dlmask
         print(round(time() - start), 'sec elapsed for overhead')
         for numsec in range(1,numsecmax):
             print('section N: ', numsec, '/', numsecmax - 1)
@@ -166,14 +167,14 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
             if roiflag:
                 roi2 = cv2.resize(roi, dsize=(width, height), interpolation=cv2.INTER_NEAREST)
                 msktmp = np.multiply(msktmp, roi2 > 0)
+
             if not msktmp.any():
                 print('non healthy section,',numsec)
-                # healthy_tissue = False
                 continue
-            # else:
-            #     healthy_tissue = True
+            if msktmp.any():
+                roi_numsec = roi_numsec + 1
 
-            # align horizontal
+            # align horizontal, mskepi (epidermis location) used to find rot. matrix
             [xt2, yt2] = np.where(mskepi)
             vertices = np.array([xt2[::10], yt2[::10]]).T
             vc = vertices - vertices.mean(axis=0)
@@ -196,14 +197,14 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
             TAtmp[mskbig == 0] = 0  # scale back up to perform rotation #1sec
 
             [xt0, yt0] = np.where(mskbig)  # mskrot is sometimes not detected
-            TAtmp2 = TAtmp[np.min(xt0):np.max(xt0), np.min(yt0):np.max(yt0)]
+            TAtmp2 = TAtmp[np.min(xt0):np.max(xt0), np.min(yt0):np.max(yt0)] # crop mask
 
             mskrot = rotate_image_cv2(TAtmp2, d0)
-            [xt, yt] = np.where(mskrot)  # mskrot is sometimes not detected
+            [xt, yt] = np.where(mskrot)  # mskrot is sometimes not detected # xt is where rotated
             print(round(time() - start), 'sec elapsed for DL rotation and cropping')
 
             start = time()
-            [xt2, yt2] = np.where((mskrot == 1) | (mskrot == 2))
+            [xt2, yt2] = np.where((mskrot == 1) | (mskrot == 2)) #xt2 calculated to see if dermis is above epidermis
             d0Flip = False
             if np.mean(xt) - np.mean(xt2) < 0:  # if dermis is above epidermis, flip it
                 d0Flip = True
@@ -221,23 +222,23 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
             print(round(time() - start), 'sec elapsed for H&E rotation')
 
             start = time()  # 10sec
-            imrot2 = imrot[np.min(xt):np.max(xt), np.min(yt):np.max(yt)]
+            imrot2 = imrot[np.min(xt):np.max(xt), np.min(yt):np.max(yt)] #cropped image
             lmask = np.repeat(np.multiply(np.logical_not(imrot2[:, :, 0] > 0)[:, :, np.newaxis], 230, dtype=np.uint8),
                               3,
                               axis=2)
-            imrot3 = np.add(imrot2,lmask)
+            imrot3 = np.add(imrot2,lmask) # 10 times smaller in size compared to imrot2
             print(round(time() - start), 'sec elapsed for H&E cropping')
 
             mskrot2[mskrot2 == 0] = whitespace
             start = time()  # 10sec
             Image.fromarray(mskrot2.astype('int8')).save(
-                os.path.join(dldst, '{}_sec{:02d}.png'.format(dlfn, numsec)))
+                os.path.join(dldst, '{}_sec{:02d}.png'.format(dlfn, roi_numsec)))
 
             Image.fromarray(imrot3.astype('uint8')).save(
-                os.path.join(imdst, '{}_sec{:02d}.png'.format(imfn, numsec)),optimize=True)
+                os.path.join(imdst, '{}_sec{:02d}.png'.format(imfn, roi_numsec)),optimize=True)
 
             Image.fromarray(imrot3.astype('uint8')).resize([_ // 10 for _ in imrot3.shape][:2][::-1], resample=1).save(
-                os.path.join(imdst2, '{}_sec{:02d}.png'.format(dlfn, numsec)), optimize=True)
+                os.path.join(imdst2, '{}_sec{:02d}.png'.format(dlfn, roi_numsec)), optimize=True)
             print(round(time() - start), 'sec elapsed for writing images')
 
             # except:
@@ -249,7 +250,7 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
                 healthy_tissue = False
             else:
                 healthy_tissue = True
-            df.append({'imID': idx, 'imname': imfn, 'secN': numsec, 'k': k.flatten(), 'degrot': round(d0, 2), 'd0special':d0special, 'd0Flip':d0Flip, 'healthy_tissue': healthy_tissue})
+            df.append({'imID': idx, 'imname': imfn, 'secN': roi_numsec, 'k': k.flatten(), 'degrot': round(d0, 2), 'd0special':d0special, 'd0Flip':d0Flip, 'healthy_tissue': healthy_tissue})
             df2 = pd.DataFrame(df)
             df2.to_excel(os.path.join(imdst, 'CLUE_rotation_LUT.xlsx'))
 
