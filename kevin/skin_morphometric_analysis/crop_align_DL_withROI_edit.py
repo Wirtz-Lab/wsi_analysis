@@ -101,7 +101,7 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
         isdl = os.path.exists(os.path.join(imdst, '{}_sec{:02d}.png'.format(dlfn, 1)))
         if isim and isdl:
             print('continue')
-            continue
+            # continue
         print(imfn)
         print('idx:',idx)
 
