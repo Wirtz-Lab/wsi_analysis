@@ -73,10 +73,12 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
     inter = [_ for _ in imlist if _ in dllist]
 
     xl = pd.read_excel(xlsrc)
-    healthy = list(xl["roi_mask_filepath"]) #get file path, this one already has all the healthy files
-    healthy_list = [x for x in healthy if x.endswith(".png")]
+    xl = xl[xl["student score"] > 1] # filter
+    healthy = list(xl["path"]) #get file path, this one already has all the healthy files
+
+    healthy_list = [x for x in healthy if x.endswith(".ndpi")]
     healthy_list = [os.path.basename(x) for x in healthy_list]
-    healthy_list = [x.replace(".png", "") for x in healthy_list]
+    healthy_list = [x.replace(".ndpi", "") for x in healthy_list]
     inter2 = [_ for _ in inter if _ in healthy_list] # intersection b/w imlist/dllist and healthy_list
     inter2 = natsorted(inter2)
     imlist = [os.path.join(imsrc, _) for _ in inter2]
@@ -140,20 +142,23 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
         sure_bg = cv2.dilate(opening, kernel, iterations=3)
         # define middleground
         unknown = cv2.subtract(sure_bg, sure_fg).astype('bool')
-        # label that background is 1 and objects are 2~N and middleground is zero
+
+        # label that background is 1 and objects are 2~N and middleground is zero -> the middleground meaning the outline of the object "unknown",
+        # this value is labeled 0.
+        # The background (black) is labeled as 1, and each object (usually four tissue in one section) is labeled from 2,3,4,5....
         sure_fg_label = label(sure_fg).astype(np.int32)
         sure_fg_label = sure_fg_label + 1
         sure_fg_label[unknown] = 0
         # perform watershed based on the marker
         TAbgr = cv2.cvtColor(TA, cv2.COLOR_GRAY2BGR)
-        label_image = cv2.watershed(TAbgr, sure_fg_label)
+        label_image = cv2.watershed(TAbgr, sure_fg_label) #label_image = background one color, and the four tissues each have a color
         # iterate each section
-        epi = (TA == 1) | (TA == 2)
-        derm = (2 < TA) & (TA < whitespace)
+        epi = (TA == 1) | (TA == 2) #epidermis
+        derm = (2 < TA) & (TA < whitespace) # all rest of dermis
         derm = remove_small_holes(derm, area_threshold=minDermhole)
-        epi2 = epi & ~derm
-        epi2 = remove_small_objects(epi2, min_size=minepisize, connectivity=2)
-        numsecmax = np.max(label_image) #label_image = entire raw dlmask
+        epi2 = epi & ~derm #only isolate epidermis
+        epi2 = remove_small_objects(epi2, min_size=minepisize, connectivity=2) # this returns the epidermis part of the entire image!
+        numsecmax = np.max(label_image) #label_image = entire raw dlmask watershed -> "segmentation"
         print(round(time() - start), 'sec elapsed for overhead')
         for numsec in range(1,numsecmax):
             print('section N: ', numsec, '/', numsecmax - 1)
@@ -162,7 +167,7 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
             msktmp = label_image == numsec + 1
 
             # mskderm = msktmp & derm
-            mskepi = msktmp & epi2
+            mskepi = msktmp & epi2 # so this returns mskepi, which is the epidermis of the first object of the tissue. So therefore count is section N: 1/N-1.
 
             if roiflag:
                 roi2 = cv2.resize(roi, dsize=(width, height), interpolation=cv2.INTER_NEAREST)
@@ -191,11 +196,13 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
             start = time()
             TAtmp = deepcopy(TAbig)
 
+            # resize and dilates the binary mask to match the size of the original image.
             mskbig = cv2.resize(msktmp.astype(np.uint8), TAtmp.shape[::-1], interpolation=cv2.INTER_NEAREST)
             kernel = np.ones((20, 20), np.uint8)
             mskbig = cv2.dilate(mskbig, kernel, iterations=3)
             TAtmp[mskbig == 0] = 0  # scale back up to perform rotation #1sec
 
+            # Rotates the original image and the binary mask using the calculated orientation.
             [xt0, yt0] = np.where(mskbig)  # mskrot is sometimes not detected
             TAtmp2 = TAtmp[np.min(xt0):np.max(xt0), np.min(yt0):np.max(yt0)] # crop mask
 
@@ -203,6 +210,7 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
             [xt, yt] = np.where(mskrot)  # mskrot is sometimes not detected # xt is where rotated
             print(round(time() - start), 'sec elapsed for DL rotation and cropping')
 
+            # Flips the binary mask if the dermis part is above the epidermis part.
             start = time()
             [xt2, yt2] = np.where((mskrot == 1) | (mskrot == 2)) #xt2 calculated to see if dermis is above epidermis
             d0Flip = False
@@ -215,12 +223,14 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
             mskrot2 = mskrot[np.min(xt):np.max(xt), np.min(yt):np.max(yt)]
             print(round(time() - start), 'sec elapsed for calculating flip')
 
+            # Multiplies the original image by the binary mask to obtain a masked image
             start = time()  # 10sec
             imtmp = np.multiply(im, np.repeat(mskbig[:, :, np.newaxis], 3, axis=2))
             imtmp2 = imtmp[np.min(xt0):np.max(xt0), np.min(yt0):np.max(yt0)]
             imrot = rotate_image_cv2(imtmp2, d0)
             print(round(time() - start), 'sec elapsed for H&E rotation')
 
+            # Crops the rotated masked image to include only the regions with positive values
             start = time()  # 10sec
             imrot2 = imrot[np.min(xt):np.max(xt), np.min(yt):np.max(yt)] #cropped image
             lmask = np.repeat(np.multiply(np.logical_not(imrot2[:, :, 0] > 0)[:, :, np.newaxis], 230, dtype=np.uint8),
@@ -231,6 +241,7 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
 
             mskrot2[mskrot2 == 0] = whitespace
             start = time()  # 10sec
+            # save mask, masked image, and downsized masked image by 10.
             Image.fromarray(mskrot2.astype('int8')).save(
                 os.path.join(dldst, '{}_sec{:02d}.png'.format(dlfn, roi_numsec)))
 
