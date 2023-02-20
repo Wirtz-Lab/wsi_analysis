@@ -40,27 +40,20 @@ def rotate_image_cv2(mat, angle):
 
 
 def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
-    roiflag = True
     minTA = 20000
     minTAhole = 100
     minDermhole = 5000
     minepisize = 1000
     whitespace = 12
 
-    if roiflag:
-        imdst = os.path.join(imsrc, 'kevin_imcrop_roiv2')
-        if not os.path.exists(imdst): os.mkdir(imdst)
-        imdst2 = os.path.join(imdst, 'kevin_imcrop_roi_10umv2')
-        if not os.path.exists(imdst2): os.mkdir(imdst2)
-        dldst = os.path.join(dlsrc, 'kevin_dlcrop_roiv2')
-        if not os.path.exists(dldst): os.mkdir(dldst)
-    else:
-        imdst = os.path.join(imsrc, 'kevin_imcropv2')
-        if not os.path.exists(imdst): os.mkdir(imdst)
-        imdst2 = os.path.join(imdst, 'kevin_imcrop_10umv2')
-        if not os.path.exists(imdst2): os.mkdir(imdst2)
-        dldst = os.path.join(dlsrc, 'kevin_dlcropv2')
-        if not os.path.exists(dldst): os.mkdir(dldst)
+    imdst = os.path.join(imsrc, 'kevin_imcrop_roi')
+    if not os.path.exists(imdst): os.mkdir(imdst)
+    imdst2 = os.path.join(imdst, 'kevin_imcrop_roi_10um')
+    if not os.path.exists(imdst2): os.mkdir(imdst2)
+    dldst = os.path.join(dlsrc, 'kevin_dlcrop_roi')
+    if not os.path.exists(dldst): os.mkdir(dldst)
+    dldst2 = os.path.join(dlsrc, 'kevin_dlcrop_roi_woroi')
+    if not os.path.exists(dldst2): os.mkdir(dldst2)
 
     imlist = [_ for _ in os.listdir(imsrc) if _.endswith('tif')]
     dllist = [_ for _ in os.listdir(dlsrc) if _.endswith('tif')]
@@ -92,7 +85,7 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
     df = []
 
     for idx,(imname,dlname) in enumerate(zip(imlist,dllist)):
-        roi_numsec = 0
+        # roi_numsec = 0
         start = time()
 
         imfn, ext = os.path.splitext(os.path.basename(imname))
@@ -119,8 +112,8 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
 
         TAbig = np.array(dl)
 
-        if roiflag:
-            roi = np.array(Image.open(roiname))
+
+        roi = np.array(Image.open(roiname))
 
         # downsize to expedite
         (width, height) = (dl.width // 10, dl.height // 10)
@@ -158,26 +151,21 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
         derm = remove_small_holes(derm, area_threshold=minDermhole)
         epi2 = epi & ~derm #only isolate epidermis
         epi2 = remove_small_objects(epi2, min_size=minepisize, connectivity=2) # this returns the epidermis part of the entire image!
-        numsecmax = np.max(label_image) #label_image = entire raw dlmask watershed -> "segmentation"
         print(round(time() - start), 'sec elapsed for overhead')
-        for numsec in range(1,numsecmax):
-            print('section N: ', numsec, '/', numsecmax - 1)
-            # try:
+        # for numsec in range(1,numsecmax): #iterate ROI
+        for numsec in range(1,np.max(roi)+1):
+            print('section N: ', numsec, '/', np.max(roi))
             start = time()
-            msktmp = label_image == numsec + 1
+            roi = cv2.resize(roi, label_image.shape[::-1], interpolation=cv2.INTER_NEAREST)
+            msktmp = roi == numsec
+
+            #DEFINE TISSUE OBJECT WITHOUT ROI
+            wo_roi_idx = label_image[msktmp]
+            wo_roi_idx = np.median(wo_roi_idx)
+            wo_roi = label_image == wo_roi_idx
 
             # mskderm = msktmp & derm
             mskepi = msktmp & epi2 # so this returns mskepi, which is the epidermis of the first object of the tissue. So therefore count is section N: 1/N-1.
-
-            if roiflag:
-                roi2 = cv2.resize(roi, dsize=(width, height), interpolation=cv2.INTER_NEAREST)
-                msktmp = np.multiply(msktmp, roi2 > 0)
-
-            if not msktmp.any():
-                print('non healthy section,',numsec)
-                continue
-            if msktmp.any():
-                roi_numsec = roi_numsec + 1
 
             # align horizontal, mskepi (epidermis location) used to find rot. matrix
             [xt2, yt2] = np.where(mskepi)
@@ -200,7 +188,7 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
             mskbig = cv2.resize(msktmp.astype(np.uint8), TAtmp.shape[::-1], interpolation=cv2.INTER_NEAREST)
             kernel = np.ones((20, 20), np.uint8)
             mskbig = cv2.dilate(mskbig, kernel, iterations=3)
-            TAtmp[mskbig == 0] = 0  # scale back up to perform rotation #1sec
+            TAtmp[mskbig == 0] = 0  #deeplab mask within roi
 
             # Rotates the original image and the binary mask using the calculated orientation.
             [xt0, yt0] = np.where(mskbig)  # mskrot is sometimes not detected
@@ -230,38 +218,52 @@ def crop_align_DL(imsrc,dlsrc,roisrc,xlsrc):
             imrot = rotate_image_cv2(imtmp2, d0)
             print(round(time() - start), 'sec elapsed for H&E rotation')
 
-            # Crops the rotated masked image to include only the regions with positive values
             start = time()  # 10sec
-            imrot2 = imrot[np.min(xt):np.max(xt), np.min(yt):np.max(yt)] #cropped image
+            # Crops the rotated masked image
+            imrot2 = imrot[np.min(xt):np.max(xt), np.min(yt):np.max(yt)]
+            #apply white/gray background
             lmask = np.repeat(np.multiply(np.logical_not(imrot2[:, :, 0] > 0)[:, :, np.newaxis], 230, dtype=np.uint8),
                               3,
                               axis=2)
-            imrot3 = np.add(imrot2,lmask) # 10 times smaller in size compared to imrot2
+            imrot3 = np.add(imrot2,lmask)
             print(round(time() - start), 'sec elapsed for H&E cropping')
 
             mskrot2[mskrot2 == 0] = whitespace
+
+            # repeat with woroi
+            # fresh load DLmask of WSI
+            TAtmp = deepcopy(TAbig)
+            # load mask to select a section in WSI
+            mskbig = cv2.resize(wo_roi.astype(np.uint8), TAtmp.shape[::-1], interpolation=cv2.INTER_NEAREST)
+            kernel = np.ones((20, 20), np.uint8)
+            mskbig = cv2.dilate(mskbig, kernel, iterations=3)
+            TAtmp[mskbig == 0] = 0  # deeplab mask within roi
+            #tight-crop wo_roi
+            [xt0, yt0] = np.where(mskbig)
+            TAtmp2 = TAtmp[np.min(xt0):np.max(xt0), np.min(yt0):np.max(yt0)]
+            #rotate
+            mskrot = rotate_image_cv2(TAtmp2, d0)
+            #tight-crop rotated wo_roi
+            [xt, yt] = np.where(mskrot)
+            mskrot3 = mskrot[np.min(xt):np.max(xt), np.min(yt):np.max(yt)]
+
             start = time()  # 10sec
             # save mask, masked image, and downsized masked image by 10.
             Image.fromarray(mskrot2.astype('int8')).save(
-                os.path.join(dldst, '{}_sec{:02d}.png'.format(dlfn, roi_numsec)))
+                os.path.join(dldst, '{}_sec{:02d}.png'.format(dlfn, numsec)))
+
+            Image.fromarray(mskrot3.astype('int8')).save(
+                os.path.join(dldst2, '{}_sec{:02d}.png'.format(dlfn, numsec)))
 
             Image.fromarray(imrot3.astype('uint8')).save(
-                os.path.join(imdst, '{}_sec{:02d}.png'.format(imfn, roi_numsec)),optimize=True)
+                os.path.join(imdst, '{}_sec{:02d}.png'.format(imfn, numsec)))
 
             Image.fromarray(imrot3.astype('uint8')).resize([_ // 10 for _ in imrot3.shape][:2][::-1], resample=1).save(
-                os.path.join(imdst2, '{}_sec{:02d}.png'.format(dlfn, roi_numsec)), optimize=True)
+                os.path.join(imdst2, '{}_sec{:02d}.png'.format(dlfn, numsec)))
             print(round(time() - start), 'sec elapsed for writing images')
 
-            # except:
-            #     k=np.array([777])
-            #     d0=777
-            #     d0special=False
-            #     d0Flip=False
-            if not msktmp.any():
-                healthy_tissue = False
-            else:
-                healthy_tissue = True
-            df.append({'imID': idx, 'imname': imfn, 'secN': roi_numsec, 'k': k.flatten(), 'degrot': round(d0, 2), 'd0special':d0special, 'd0Flip':d0Flip, 'healthy_tissue': healthy_tissue})
+
+            df.append({'imID': idx, 'imname': imfn, 'secN': numsec, 'k': k.flatten(), 'degrot': round(d0, 2), 'd0special':d0special, 'd0Flip':d0Flip})
             df2 = pd.DataFrame(df)
             df2.to_excel(os.path.join(imdst, 'CLUE_rotation_LUT.xlsx'))
 
