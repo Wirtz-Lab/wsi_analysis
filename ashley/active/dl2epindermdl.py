@@ -63,7 +63,7 @@ def dlcorrection(dl):
     # resize back
     collagen = Image.fromarray(collagen).resize((dl.width, dl.height), resample=0)
     collagen_arr = np.array(collagen)
-
+    print('removed small objects in collagen')
     # 3. find epidermal-dermis junction
     [xt, yt] = np.where(collagen_arr)
     # we actually want to find the minimum x-coordinate (because this image is weirdly oriented)
@@ -77,7 +77,7 @@ def dlcorrection(dl):
     # TODO: need to change this to be more robust, what if the junction drops in the middle,
     new_junction_x = [x for x in min_x if x < np.round(remove_bins[0].astype("uint32"))]
     new_junction_y = list(range(len(new_junction_x)))
-
+    print('defined epidermis dermis junction')
     # 2: correct anything that is miss classified in epi
     # get new contour
     collagen_tmp = deepcopy(collagen_arr)
@@ -107,6 +107,7 @@ def dlcorrection(dl):
 
     # iterate through epi and replace value with 1 or 2, ignore 0 and 12
     window_size = 20
+    print('iterating through epidermis to replace non-epidermal components to corneum or spinosum')
     # takes around 38 seconds
     for x in range(np.max(x)):
         for y in range(epi.shape[1]):  # max of y
@@ -288,7 +289,18 @@ def dlcorrection(dl):
             [x, y] = np.where(dermtmp)
             final_img[x, y] = i
 
-        return final_img
+        return Image.fromarray(final_img)
+
+if __name__ == "__main__":
+    dlcropsrc = r'\\fatherserverdw\kyuex\analysis output\datadst\20220929\dlcrop'
+    img_name = '2022-06-08 18.13.05sec2.png'
+    dl = Image.open(os.path.join(dlcropsrc, img_name))
+    correcteddl = dlcorrection(dl)
+
+    dst = os.path.join(dlcropsrc,'corrected230303')
+    if not os.path.exists(dst):os.mkdir(dst)
+    correcteddl.save(os.path.join(dst,img_name))
+
 
 
 
