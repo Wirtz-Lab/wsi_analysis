@@ -42,6 +42,9 @@ def is_follicle(obj,id, thres_derm4_area,round_threshold, props):
 
 
 # param dl : pass in an image object with Image.open(os.path.join(dlcropsrc, img_name))
+
+#UserWarning: Only one label was provided to `remove_small_objects`. Did you mean to use a boolean array?
+  #derm3 = remove_small_objects(derm3, thres).astype(np.uint8)
 def dlcorrection(dl):
     dl_arr = np.array(dl)
     dl_arr[dl_arr == 12] = 0
@@ -167,7 +170,9 @@ def dlcorrection(dl):
     #3 should have nothing else in it,should be touching four
     if not np.sum(derm3) == 0:
         derm3 = ndimage.binary_fill_holes(derm3).astype(int)
-        derm3 = remove_small_objects(derm3, thres)
+        derm3 = remove_small_objects(derm3, thres).astype(np.uint8)
+
+        print("ignore derm3 user warning")
         # dilate derm3 to create a ring around derm3, check if the rings contain 4
         # if not, remove everything in that ring
         label_derm = label(derm3)
@@ -186,7 +191,7 @@ def dlcorrection(dl):
 
                 if np.sum(tmp) == 0:
                     # TODO: change pixel value to the majority of the ring
-                    replace_dermis_pixel_with_ring(label_derm == i)
+                    derm = replace_dermis_pixel_with_ring(label_derm == i,derm)
                 else:
                     [x, y] = np.where(label_derm == i)
                     derm3[x, y] = 0
@@ -196,6 +201,7 @@ def dlcorrection(dl):
     derm[x1, y1] = 3
 
     # 4 should be big enough, should only have 3 and 6 inside
+    print("processing id 4")
     thres_derm4_area = 2000    #how big: above 2000px (above 20 cells)
     round_threshold = 0.9
 
@@ -242,7 +248,7 @@ def dlcorrection(dl):
         for id, prop in enumerate(props):  # id must +1
             if prop.area < thres_derm5_area:
                 # replace using ring
-                replace_dermis_pixel_with_ring(labels == (id + 1))
+                derm = replace_dermis_pixel_with_ring(labels == (id + 1),derm)
             else:  # 5 must not have anything inside, 5 should only touch 12 (which is 0) ,10
                 # TODO: how to replace entire tissue section around 5 ?
                 prop_dilate = ndimage.binary_dilation(labels == (id + 1)).astype('bool')
@@ -262,6 +268,8 @@ def dlcorrection(dl):
 
         # 6 oilgland, 7 sweatgland, 8 nerve, 9 bloodvessel should not contain  any other class within it
         # thres is 850
+
+        print("processing id 6 to 9")
         to_fill_id = [6, 7, 8, 9]
         for id in to_fill_id:
             if (np.sum(derm == id) != 0):
@@ -288,6 +296,8 @@ def dlcorrection(dl):
             dermtmp = (derm == i)
             [x, y] = np.where(dermtmp)
             final_img[x, y] = i
+
+        print("process finished, return image")
 
         return Image.fromarray(final_img)
 
