@@ -45,7 +45,8 @@ def is_follicle(obj,id, thres_derm4_area,round_threshold, props):
 
 #UserWarning: Only one label was provided to `remove_small_objects`. Did you mean to use a boolean array?
   #derm3 = remove_small_objects(derm3, thres).astype(np.uint8)
-def dlcorrection(dl):
+def dlcorrection(dl, iteration):
+    print(iteration)
     dl_arr = np.array(dl)
     dl_arr[dl_arr == 12] = 0
     col = (dl_arr == 10)  # collagen
@@ -302,14 +303,28 @@ def dlcorrection(dl):
         return Image.fromarray(final_img)
 
 if __name__ == "__main__":
-    dlcropsrc = r'\\fatherserverdw\kyuex\analysis output\datadst\20220929\dlcrop'
-    img_name = '2022-06-08 18.13.05sec2.png'
-    dl = Image.open(os.path.join(dlcropsrc, img_name))
-    correcteddl = dlcorrection(dl)
+    dlcropsrc = r'\\shelter\Kyu\skin_aging\clue_cohort\HE1um\classification_v9_combined\DLcrop'
+    it = 0
+    for path in os.listdir(dlcropsrc):
+        if (path.endswith(".png")):
+            img_name = path
+            dl = Image.open(os.path.join(dlcropsrc, img_name))
+            correcteddl = dlcorrection(dl,it)
+            it = it+1
 
-    dst = os.path.join(dlcropsrc,'corrected230303')
-    if not os.path.exists(dst):os.mkdir(dst)
-    correcteddl.save(os.path.join(dst,img_name))
+            dst = os.path.join(dlcropsrc, 'correctedDL')
+            if not os.path.exists(dst): os.mkdir(dst)
+            correcteddl.save(os.path.join(dst, img_name))
+
+
+
+
+
+
+
+
+
+
 
 
 
