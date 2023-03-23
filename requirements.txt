@@ -23,6 +23,8 @@ tensorboardx
 seaborn
 mpldatacursor
 imutils
+pyvips==2.2.1
+jupyter
 #svgwrite
 #conda install pytables #to save df as hdf5
 #conda install -c anaconda tensorflow-gpu
