@@ -190,7 +190,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
 # for further 2d analysis (kevin):
 if __name__ == "__main__":
     jsonsrc = r'\\shelter\Kyu\skin_aging\clue_cohort\wsi\hovernet_out\json'
-    dlsrc = a
-    roisrc = a
+    dlsrc = r'\\shelter\Kyu\skin_aging\clue_cohort\DLmask1um\desired_DLmask'
+    roisrc = r'\\shelter\Kyu\skin_aging\clue_cohort\annotations\roi\labeledmask_v2_021723\desired_roi'
     ndpisrc = r'\\shelter\Kyu\skin_aging\clue_cohort\wsi\desired_wsi'
     hovernet_json2df(jsonsrc, ndpisrc, dlsrc, roisrc)
