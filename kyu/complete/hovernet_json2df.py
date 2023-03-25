@@ -179,9 +179,18 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
         json.to_pickle(dstfn)
         pkls.append(json)
 
+# kyu's original code:
+# if __name__ == "__main__":
+#     jsonsrc = r'\\fatherserverdw\Q\research\images\skin_aging\wsi\hovernet_out\json'
+#     dlsrc = r'\\fatherserverdw\Q\research\images\skin_aging\1um\classification_v9_combined'
+#     roisrc = r'\\fatherserverdw\Q\research\images\skin_aging\annotation\roi\tif'
+#     ndpisrc = r'\\fatherserverdw\Q\research\images\skin_aging\wsi'
+#     hovernet_json2df(jsonsrc,ndpisrc,dlsrc,roisrc)
+
+# for further 2d analysis (kevin):
 if __name__ == "__main__":
-    jsonsrc = r'\\fatherserverdw\Q\research\images\skin_aging\wsi\hovernet_out\json'
-    dlsrc = r'\\fatherserverdw\Q\research\images\skin_aging\1um\classification_v9_combined'
-    roisrc = r'\\fatherserverdw\Q\research\images\skin_aging\annotation\roi\tif'
-    ndpisrc = r'\\fatherserverdw\Q\research\images\skin_aging\wsi'
-    hovernet_json2df(jsonsrc,ndpisrc,dlsrc,roisrc)
+    jsonsrc = r'\\shelter\Kyu\skin_aging\clue_cohort\wsi\hovernet_out\json'
+    dlsrc = a
+    roisrc = a
+    ndpisrc = r'\\shelter\Kyu\skin_aging\clue_cohort\wsi\desired_wsi'
+    hovernet_json2df(jsonsrc, ndpisrc, dlsrc, roisrc)
