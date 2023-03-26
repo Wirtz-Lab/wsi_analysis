@@ -3,7 +3,7 @@ import pandas as pd
 from natsort import natsorted
 from PIL import Image
 Image.MAX_IMAGE_PIXELS=None
-from openslide import OpenSlide
+# from openslide import OpenSlide
 import numpy as np
 import cv2
 from sklearn.neighbors import NearestNeighbors
@@ -12,6 +12,16 @@ from DLcomposition import DLcomposition
 # from dl2distancemap import dl2distancemap
 from dl2distancemap_byroiv2 import dl2distancemap_byroiv2
 from time import time
+# importing openslide (kevin):
+OPENSLIDE_PATH = r'C:\Users\Kevin\Downloads\openslide-win64-20221217\bin'
+
+if hasattr(os, 'add_dll_directory'):
+    # Python >= 3.8 on Windows
+    with os.add_dll_directory(OPENSLIDE_PATH):
+        from openslide import OpenSlide
+else:
+    import openslide
+
 
 def cntarea(cnt):
     cnt = np.array(cnt)
