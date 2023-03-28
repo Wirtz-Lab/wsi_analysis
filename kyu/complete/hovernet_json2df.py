@@ -3,7 +3,7 @@ import pandas as pd
 from natsort import natsorted
 from PIL import Image
 Image.MAX_IMAGE_PIXELS=None
-# from openslide import OpenSlide
+from openslide import OpenSlide
 import numpy as np
 import cv2
 from sklearn.neighbors import NearestNeighbors
@@ -12,15 +12,17 @@ from DLcomposition import DLcomposition
 # from dl2distancemap import dl2distancemap
 from dl2distancemap_byroiv2 import dl2distancemap_byroiv2
 from time import time
+from tqdm import tqdm
 # importing openslide (kevin):
-OPENSLIDE_PATH = r'C:\Users\Kevin\Downloads\openslide-win64-20221217\bin'
 
-if hasattr(os, 'add_dll_directory'):
-    # Python >= 3.8 on Windows
-    with os.add_dll_directory(OPENSLIDE_PATH):
-        from openslide import OpenSlide
-else:
-    import openslide
+# OPENSLIDE_PATH = r'C:\Users\Kevin\Downloads\openslide-win64-20221217\bin'
+#
+# if hasattr(os, 'add_dll_directory'):
+#     # Python >= 3.8 on Windows
+#     with os.add_dll_directory(OPENSLIDE_PATH):
+#         from openslide import OpenSlide
+# else:
+#     import openslide
 
 
 def cntarea(cnt):
@@ -93,15 +95,15 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
     jsons = [_ for _ in jsons if not 'duplicate' in _]
     # jsons = jsons[::-1]
     pkls = []
-    for idxj,jsonnm in enumerate(jsons): #looping only once
+    for idxj,jsonnm in tqdm(enumerate(jsons),desc='Image Processing Progress',total=len(jsons),colour='red'): #looping only once
         print(idxj,'/',len(jsons))
         #read and format json into dataframe
+
         imID,ext = os.path.splitext(jsonnm)
         dstfn = os.path.join(dst, '{}.pkl'.format(imID))
-        # if os.path.exists(dstfn):
-        #     json = pd.read_pickle(dstfn)
-        #     pkls.append(json)
-        #     continue
+        if os.path.exists(dstfn):
+            print("pkl already exists, skipping the file ID {}".format(imID))
+            continue
         json = os.path.join(jsonsrc, jsonnm)
         try:
             json = pd.read_json(json, orient='index')
@@ -110,6 +112,29 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
             continue
         json = pd.DataFrame(json[0].loc['nuc']).T.drop(columns=['type_prob'])
         json = json[json['contour'].map(len) > 5].reset_index(drop=True)
+
+        # edited part by Kevin (start), for dividing bbox, centroid and contour x,y coordinates by 2, for 20x (since wsi images not in 40x)
+        #bbox:
+        tmp_ra = json["bbox"].tolist()
+        for idx in range(len(tmp_ra)):
+            tmp_ra[idx] = [[int(x / 2), int(y / 2)] for (x, y) in tmp_ra[idx]]
+        json["bbox"] = tmp_ra
+
+        #centroid:
+        contour_tmp = json["centroid"].tolist()
+        tmp_ra = [contour_tmp[i][0] / 2 for i in range(len(contour_tmp))]
+        tmp_ra1 = [contour_tmp[i][1] / 2 for i in range(len(contour_tmp))]
+        tmp_ra = list(zip(tmp_ra, tmp_ra1))
+        tmp_ra = [[tmp_ra[i][0], tmp_ra[i][1]] for i in
+                          range(len(tmp_ra))]  # ,int(new_contour_xy[i][1])
+        json["centroid"] = tmp_ra
+
+        # contour:
+        tmp_ra = json["contour"].tolist()
+        for idx in range(len(tmp_ra)):
+            tmp_ra[idx] = [[int(x / 2), int(y / 2)] for (x, y) in tmp_ra[idx]]
+        json["contour"] = tmp_ra
+        # edited part by Kevin (end)
 
         if (dlsrc is not None) & (ndpisrc is not None):
             #calculate rescale factor between ndpi and dlmask
@@ -125,13 +150,15 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
             rsfw_ndpi2dl = ndpiw / dlw
             rsfh_ndpi2dl = ndpih / dlh
 
+
         # query centroid on tissue map to obtain tissue component ID where the cell is contained
             if classify_cell:
                 json['type'] = json['centroid'].apply(lambda row: cellclass(row,dl,rsfw_ndpi2dl,rsfh_ndpi2dl))
                 print('celltype classified')
 
             if mask_roi:
-                roinm = jsonnm.replace(ext, '_tissue_binary.tif')
+                # roinm = jsonnm.replace(ext, '_tissue_binary.tif')
+                roinm = jsonnm.replace(ext, '.png')
                 roi = Image.open(os.path.join(roisrc, roinm))
                 roiw, roih = roi.size
                 rsfw_ndpi2roi = ndpiw / roiw
@@ -140,6 +167,9 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
                 #label and convert back to pillow image
                 roiarr = np.array(roi)
                 roiarrL = label(roiarr)
+                # edited by kevin:
+                roiarrL = roiarrL.astype('uint8')
+
                 roiimL = Image.fromarray(roiarrL)
                 #classify section id for each cell
                 json['inroi'] = json['centroid'].apply(lambda centroid: isinroi(centroid, roiimL, rsfw_ndpi2roi, rsfh_ndpi2roi))
@@ -173,7 +203,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
         json['Sol'] = json['contour'].apply(lambda row: cntsol(row))
         json['Extent'] = json['contour'].apply(lambda row: cntExtent(row))
         json['EquiDia'] = json['contour'].apply(lambda row: cntEquiDia(row)) # sqrt(4*Area/pi).
-        json['imID'] = [int(imID)]*len(json)
+        json['imID'] = imID + str(len(json))
 
         points = pd.DataFrame(json.centroid.tolist()).astype('int')
         nbrs = NearestNeighbors(n_neighbors=3, metric='euclidean').fit(points)
