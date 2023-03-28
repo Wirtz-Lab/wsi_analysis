@@ -203,7 +203,7 @@ def hovernet_json2df(jsonsrc,ndpisrc=None,dlsrc=None,roisrc=None):
         json['Sol'] = json['contour'].apply(lambda row: cntsol(row))
         json['Extent'] = json['contour'].apply(lambda row: cntExtent(row))
         json['EquiDia'] = json['contour'].apply(lambda row: cntEquiDia(row)) # sqrt(4*Area/pi).
-        json['imID'] = imID + str(len(json))
+        json['imID'] = imID
 
         points = pd.DataFrame(json.centroid.tolist()).astype('int')
         nbrs = NearestNeighbors(n_neighbors=3, metric='euclidean').fit(points)
