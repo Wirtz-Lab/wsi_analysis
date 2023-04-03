@@ -1,5 +1,5 @@
-import pyvips
-import openslide
+import pyvips #must use conda to install
+import openslide #for linux, apt-get gcc
 from PIL import Image
 import numpy as np
 import os
@@ -16,12 +16,11 @@ def svs2tiff(svs,rsf,svs_dst):
         return
     print('processing: ',fn)
     svs_obj = openslide.OpenSlide(svs)
-    try:
-        svs_img = svs_obj.read_region(location=(0,0),level=0,size=svs_obj.level_dimensions[0]).convert('RGB')
-        print('opened image: ',fn)
-    except:
-        print('OOM: ',fn)
-        return
+
+    # SIGKILL if OOM, then increase SWAP
+    svs_img = svs_obj.read_region(location=(0,0),level=0,size=svs_obj.level_dimensions[0]).convert('RGB')
+    print('opened image: ',fn)
+
 
     resize_factorx = rsf/float(svs_obj.properties['openslide.mpp-x']) #8um = 1.25x #4um = 2.5x, #2um=5x, 1um=10x, 0.5um=20x, 0.25um=40x
     resize_factory = rsf/float(svs_obj.properties['openslide.mpp-y'])
@@ -72,13 +71,12 @@ def svs2tiff(svs,rsf,svs_dst):
     print("Image sucessfully saved!")
 
 if __name__ == '__main__':
-    input_dir = '/Volumes/Kyu/unstain2stain/unstain2stain_wsi/HE'
+    input_dir = '/home/labuser/Shelter/unstain2stain/unstain2stain_wsi/HE'
     output_dir = os.path.join(input_dir,'1um')
     filenames = [x for x in os.listdir(input_dir) if x.endswith(".ndpi")]
     # filenames = natsorted(filenames)
     filenames = sorted(filenames, key=lambda x: os.stat(os.path.join(input_dir, x)).st_size) #sort by size
     # Loop through all the files in the input directory
-    # for filename in tqdm(filenames,total=len(filenames),desc='Processed ndpis:',colour='red'):
-    for filename in filenames[::-1]:
+    for filename in tqdm(filenames,total=len(filenames),desc='Processed ndpis:',colour='red'):
         input_filepath = os.path.join(input_dir, filename)
         svs2tiff(input_filepath, 1, output_dir)
