@@ -1,0 +1,4 @@
+Go to File -> Settings -> Tools -> Terminal
+
+Replace the value in Shell path with
+cmd.exe "/K" C:\ProgramData\Anaconda3\Scripts\activate.bat your_environment_name
