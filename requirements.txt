@@ -10,7 +10,7 @@ openpyxl
 pyarrow #to save df as feather
 scikit-image
 scikit-learn
-openslide-python
+openslide-python #sudo apt install gcc
 docopt
 future
 imgaug
