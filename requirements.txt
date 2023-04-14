@@ -1,36 +1,33 @@
 #python 3.9
-numpy~=1.22.3
-scipy~=1.8.0
-pillow~=9.1.0
-natsort~=8.1.0
-opencv-python~=4.5.5.64
-matplotlib~=3.5.2
-pandas~=1.4.2
+numpy
+scipy
+pillow
+natsort
+opencv-python
+matplotlib
+pandas
 openpyxl
 pyarrow #to save df as feather
-scikit-image~=0.19.2
-scikit-learn~=1.1.0
-jupyterlab
-openslide-python
+scikit-image
+scikit-learn
+openslide-python #sudo apt install gcc
 docopt
 future
 imgaug
 psutil
 termcolor
-tqdm~=4.64.0
-tensorboard
-tensorboardx
+tqdm
 seaborn
 mpldatacursor
 imutils
-pyvips==2.2.1
+#pyvips
 #svgwrite
 #conda install pytables #to save df as hdf5
 #conda install -c anaconda tensorflow-gpu
 #os.environ['PATH'] = "path-to-openslide-bin" + ";" + os.environ['PATH']
 #conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=11.0 -c pytorch
-
-
-tensorflow~=2.6.0
-tensorflow-gpu~=2.6.0
-joblib~=1.1.0
+#tensorboard
+#tensorboardx
+#tensorflow~=2.6.0
+#tensorflow-gpu~=2.6.0
+#joblib~=1.1.0
