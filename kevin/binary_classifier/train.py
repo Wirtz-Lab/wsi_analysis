@@ -29,6 +29,8 @@ import copy
 from collections import defaultdict
 from sklearn.metrics import f1_score
 #%%
+
+
 #define dataset and dataloaders
 train_df_src = r'\\fatherserverdw\Kevin\unstained_blank_classifier\train_df.xlsx'
 train_df = pd.read_excel(train_df_src) # 1= white , 0=nonwhite, unbalanced, 79271 0's and 195376 1's. Need stratifiedgroupKfold for CV.
@@ -262,7 +264,7 @@ def epoch_train(model, optimizer, scheduler, dataloader, device, epoch):
             loss   = loss / model_config.iters_to_accumulate # need to normalize since accumulating gradients
         scaler.scale(loss).backward() # accumulates the scaled gradients
 
-        if (idx + 1) % model_config.iters_to_accumulate == 0: # scale updates should only happen at batch granularity
+        if (idx + 1) % model_config.iters_to_accumulate == 0: # scaled updates should only happen at batch granularity (every max(1,32//train_batch_size))
             scaler.step(optimizer)
             scaler.update() # update scale for next iteration
             optimizer.zero_grad() # zero the accumulated scaled gradients
@@ -290,12 +292,13 @@ def epoch_valid(model, dataloader, device, epoch):
     running_loss = 0.0 #initialize
     valid_score_history = [] #keep validation score
     pbar = tqdm(enumerate(dataloader), total=len(dataloader), desc='Validation')
-    for idx, (images, masks) in pbar:
+    for idx, (images, labels) in pbar:
         images  = images.to(device, dtype=torch.float)
-        masks   = masks.to(device, dtype=torch.float)
+        labels   = labels.to(device, dtype=torch.float)
         batch_size = images.size(0)
         y_pred  = model(images)
-        loss    = loss_func(y_pred, masks)
+        labels = labels.unsqueeze(1)
+        loss    = loss_func(y_pred, labels)
 
         running_loss += (loss.item() * batch_size) #update current running loss
         dataset_size += batch_size #update current datasize
