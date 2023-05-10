@@ -20,21 +20,22 @@ def svs2tiff(svs,rsf):
     svs_img = svs_img.resize(resize_dimension,resample=Image.NEAREST)
     svs_img.save(os.path.join(svs_dst,fn1),resolution=1,resolution_unit=1,quality=100,compression=None)
 
-svs_src = r'\\fatherserverdw\kyuex\clue images'
-svs_dst = r'\\fatherserverdw\kyuex\clue images\1um'
-
-xl = pd.read_excel(r"\\fatherserverdw\kyuex\imlist_all.xlsx",usecols=['filename','body part 1','student score'])
-backxl = xl[xl['body part 1'].str.lower()=='back']
-healthybackxl = backxl[backxl['student score']>1]
+svs_src = r'\\babyserverdw5\Digital pathology image lib\HubMap Skin TMC project\230418 HS-012-D9\raw images'
+svs_dst = r'\\babyserverdw5\Digital pathology image lib\HubMap Skin TMC project\230418 HS-012-D9\1um'
+imlist = [_ for _ in os.listdir(svs_src) if _.endswith('ndpi')]
+imlist = natsorted(imlist)
+#
+# xl = pd.read_excel(r"\\fatherserverdw\kyuex\imlist_all.xlsx",usecols=['filename','body part 1','student score'])
+# backxl = xl[xl['body part 1'].str.lower()=='back']
+# healthybackxl = backxl[backxl['student score']>1]
 
 if not os.path.exists(svs_dst):
     os.mkdir(svs_dst)
 
 st = time()
 
-for idx,svs in enumerate(healthybackxl.iloc[::-1].iterrows()):
-    svsfn = svs[1].filename
-    svs2tiff(os.path.join(svs_src,svsfn),1)
-    print(idx,'/',len(healthybackxl))
+for idx,svs in enumerate(imlist):
+    svs2tiff(os.path.join(svs_src,svs),1)
+    print(idx,'/',len(imlist))
 
-print("{:.2f} sec elapsed for {:d} images at 10x".format(time()-st,len(healthybackxl)))
+print("{:.2f} sec elapsed for {:d} images at 10x".format(time()-st,len(imlist)))
