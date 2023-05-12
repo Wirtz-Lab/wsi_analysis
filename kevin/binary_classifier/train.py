@@ -29,8 +29,6 @@ import copy
 from collections import defaultdict
 from sklearn.metrics import f1_score
 #%%
-
-
 #define dataset and dataloaders
 train_df_src = r'\\fatherserverdw\Kevin\unstained_blank_classifier\train_df.xlsx'
 train_df = pd.read_excel(train_df_src) # 1= white , 0=nonwhite, unbalanced, 79271 0's and 195376 1's. Need stratifiedgroupKfold for CV.
@@ -120,7 +118,7 @@ new_df_train
 #%%
 #check if stratification worked by grouping:
 grouped = new_df_train.groupby(['fold','label']) # look how it's splitted
-print(grouped.fold.count())
+# display(grouped.fold.count())
 
 ratio_list = []
 for k in range(5):
@@ -238,10 +236,11 @@ def loss_func(y_pred,y_true):
     loss = nn.BCEWithLogitsLoss()
     return loss(y_pred,y_true)
 #%%
-def f1_score(y_true,y_pred):
+def return_f1_score(y_true,y_pred):
     # y_true = y_true.to(torch.int)
     # y_pred = y_pred.to(torch.int)
-    return f1_score(y_true,y_pred)
+    f_one_score = f1_score(y_true,y_pred)
+    return f_one_score
 #%% md
 ### Training Loop:
 #%%
@@ -264,7 +263,7 @@ def epoch_train(model, optimizer, scheduler, dataloader, device, epoch):
             loss   = loss / model_config.iters_to_accumulate # need to normalize since accumulating gradients
         scaler.scale(loss).backward() # accumulates the scaled gradients
 
-        if (idx + 1) % model_config.iters_to_accumulate == 0: # scaled updates should only happen at batch granularity (every max(1,32//train_batch_size))
+        if (idx + 1) % model_config.iters_to_accumulate == 0: # scale updates should only happen at batch granularity
             scaler.step(optimizer)
             scaler.update() # update scale for next iteration
             optimizer.zero_grad() # zero the accumulated scaled gradients
@@ -292,7 +291,7 @@ def epoch_valid(model, dataloader, device, epoch):
     running_loss = 0.0 #initialize
     valid_score_history = [] #keep validation score
     pbar = tqdm(enumerate(dataloader), total=len(dataloader), desc='Validation')
-    for idx, (images, labels) in pbar:
+    for idx, (images, masks) in pbar:
         images  = images.to(device, dtype=torch.float)
         labels   = labels.to(device, dtype=torch.float)
         batch_size = images.size(0)
@@ -305,8 +304,8 @@ def epoch_valid(model, dataloader, device, epoch):
         epoch_loss = running_loss / dataset_size #divide epoch loss by current datasize
 
         y_pred = nn.Sigmoid()(y_pred) #sigmoid for binary classification
-        f1score = f1_score(labels,y_pred).cpu().detach().numpy() #fetch f1 score
-        valid_score_history.append(f1score)
+        f_one_score = return_f1_score(labels,y_pred).cpu().detach().numpy() #fetch f1 score
+        valid_score_history.append(f_one_score)
 
         current_lr = optimizer.param_groups[0]['lr']
         pbar.set_postfix(valid_loss=f'{epoch_loss:0.3f}',
