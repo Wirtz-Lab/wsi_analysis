@@ -291,7 +291,7 @@ def epoch_valid(model, dataloader, device, epoch):
     running_loss = 0.0 #initialize
     valid_score_history = [] #keep validation score
     pbar = tqdm(enumerate(dataloader), total=len(dataloader), desc='Validation')
-    for idx, (images, masks) in pbar:
+    for idx, (images, labels) in pbar:
         images  = images.to(device, dtype=torch.float)
         labels   = labels.to(device, dtype=torch.float)
         batch_size = images.size(0)
@@ -304,7 +304,9 @@ def epoch_valid(model, dataloader, device, epoch):
         epoch_loss = running_loss / dataset_size #divide epoch loss by current datasize
 
         y_pred = nn.Sigmoid()(y_pred) #sigmoid for binary classification
-        f_one_score = return_f1_score(labels,y_pred).cpu().detach().numpy() #fetch f1 score
+        labels = labels.cpu().detach().numpy()
+        y_pred = y_pred.cpu().detach().numpy()
+        f_one_score = return_f1_score(labels,y_pred) #fetch f1 score
         valid_score_history.append(f_one_score)
 
         current_lr = optimizer.param_groups[0]['lr']
