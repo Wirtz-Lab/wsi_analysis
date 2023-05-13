@@ -291,7 +291,7 @@ def epoch_valid(model, dataloader, device, epoch):
     running_loss = 0.0 #initialize
     valid_score_history = [] #keep validation score
     pbar = tqdm(enumerate(dataloader), total=len(dataloader), desc='Validation')
-    for idx, (images, masks) in pbar:
+    for idx, (images, labels) in pbar:
         images  = images.to(device, dtype=torch.float)
         labels   = labels.to(device, dtype=torch.float)
         batch_size = images.size(0)
