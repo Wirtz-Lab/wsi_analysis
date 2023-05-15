@@ -118,7 +118,7 @@ new_df_train
 #%%
 #check if stratification worked by grouping:
 grouped = new_df_train.groupby(['fold','label']) # look how it's splitted
-# display(grouped.fold.count())
+print(grouped.fold.count())
 
 ratio_list = []
 for k in range(5):
@@ -183,7 +183,7 @@ class model_config:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     iters_to_accumulate = max(1,32//train_batch_size) # for scaling accumulated gradients
     eta_min = 1e-5
-    model_save_directory = os.path.join(os.getcwd(),"outputs","model")
+    model_save_directory = os.path.join(os.getcwd(),"kevin","binary_classifier","outputs","model") #assuming os.getcwd is the wsi_analysis directory
 #%%
 # sets the seed of the entire notebook so results are the same every time we run for reproducibility. no randomness, everything is controlled.
 def set_seed(seed = 42):
@@ -306,6 +306,7 @@ def epoch_valid(model, dataloader, device, epoch):
         y_pred = nn.Sigmoid()(y_pred) #sigmoid for binary classification
         labels = labels.cpu().detach().numpy()
         y_pred = y_pred.cpu().detach().numpy()
+        y_pred = np.round(y_pred)
         f_one_score = return_f1_score(labels,y_pred) #fetch f1 score
         valid_score_history.append(f_one_score)
 
@@ -352,12 +353,16 @@ def run_training(model, optimizer, scheduler, device, num_epochs):
             best_epoch   = epoch
             best_model_wts = copy.deepcopy(model.state_dict())
             PATH = os.path.join(model_config.model_save_directory,f"best_epoch-{fold:02d}.pt")
+            if not os.path.exists(PATH):
+                os.makedirs(PATH)
             torch.save(model.state_dict(), PATH)
             print("Model Saved!")
 
         # save the most recent model
-        last_model_wts = copy.deepcopy(model.state_dict())
-        PATH = os.path.join(model_config.model_save_directory,f"last_epoch-{fold:02d}.pt")
+        latest_model_wts = copy.deepcopy(model.state_dict())
+        PATH = os.path.join(model_config.model_save_directory,f"latest_epoch-{fold:02d}.pt")
+        if not os.path.exists(PATH):
+            os.makedirs(PATH)
         torch.save(model.state_dict(), PATH)
 
     end = time.time()
