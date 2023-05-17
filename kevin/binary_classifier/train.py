@@ -353,16 +353,16 @@ def run_training(model, optimizer, scheduler, device, num_epochs):
             best_epoch   = epoch
             best_model_wts = copy.deepcopy(model.state_dict())
             PATH = os.path.join(model_config.model_save_directory,f"best_epoch-{fold:02d}.pt")
-            if not os.path.exists(PATH):
-                os.makedirs(PATH)
+            if not os.path.exists(model_config.model_save_directory):
+                os.makedirs(model_config.model_save_directory)
             torch.save(model.state_dict(), PATH)
             print("Model Saved!")
 
         # save the most recent model
         latest_model_wts = copy.deepcopy(model.state_dict())
         PATH = os.path.join(model_config.model_save_directory,f"latest_epoch-{fold:02d}.pt")
-        if not os.path.exists(PATH):
-            os.makedirs(PATH)
+        if not os.path.exists(model_config.model_save_directory):
+            os.makedirs(model_config.model_save_directory)
         torch.save(model.state_dict(), PATH)
 
     end = time.time()
