@@ -183,7 +183,7 @@ class model_config:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     iters_to_accumulate = max(1,32//train_batch_size) # for scaling accumulated gradients
     eta_min = 1e-5
-    model_save_directory = os.path.join(os.getcwd(),"kevin","binary_classifier","outputs","model") #assuming os.getcwd is the wsi_analysis directory
+    model_save_directory = os.path.join(os.getcwd(),"model") #assuming os.getcwd is the wsi_analysis directory
 #%%
 # sets the seed of the entire notebook so results are the same every time we run for reproducibility. no randomness, everything is controlled.
 def set_seed(seed = 42):
