@@ -342,11 +342,11 @@ def run_training(model, optimizer, scheduler, device, num_epochs):
         valid_f1 = valid_score_history
         history['Train Loss'].append(train_loss)
         history['Valid Loss'].append(valid_loss)
-        history['Valid Dice'].append(valid_f1)
+        history['Valid F1'].append(valid_f1)
 
-        print(f'Valid Dice: {valid_f1:0.4f}')
+        print(f'Valid F1: {valid_f1:0.4f}')
 
-        # if dice score improves, save the best model
+        # if F1 score improves, save the best model
         if valid_f1 >= best_f1:
             print(f"Validation F1-Score Improved ({best_f1:0.4f} ---> {valid_f1:0.4f})")
             best_f1    = valid_f1
