@@ -330,7 +330,7 @@ def run_training(model, optimizer, scheduler, device, num_epochs):
     best_epoch     = -1 # initial best epoch
     history = defaultdict(list) # history defaultdict to store relevant variables
 
-    for epoch in range(1, num_epochs + 1):
+    for epoch in tqdm(range(1, num_epochs + 1),desc="Epoch",colour="red"):
         gc.collect()
         print(f'Epoch {epoch}/{num_epochs}', end='')
         train_loss = epoch_train(model, optimizer, scheduler,
