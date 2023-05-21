@@ -387,7 +387,7 @@ if model_config == "CosineAnnealingLR": # change to CosineAnnealingLR
                                                eta_min =  model_config.eta_min)
 #%%
 # Run Training!
-for fold in range(4):
+for fold in range(5):
     print(f'Fold: {fold}')
     train_dataloader, valid_dataloader = load_dataset(fold = fold)
     model     = build_model()
