@@ -106,11 +106,12 @@ if find_mean_std_dataset:
 # all model configs go here so that they can be changed when we want to:
 class model_config:
     seed = 42
-    encoder_name = "tu-efficientnetv2_m" # from https://smp.readthedocs.io/en/latest/encoders_timm.html
-    train_batch_size = 16
-    valid_batch_size = 32
+    encoder_name = "efficientnet-b4" #"tu-efficientnetv2_m" # from https://smp.readthedocs.io/en/latest/encoders_timm.html
+    train_batch_size = 4
+    valid_batch_size = 4
     epochs = 5
     learning_rate = 0.001
+    CV_fold = 3 # number of folds of CV for train-valid
     scheduler = "CosineAnnealingLR"
     T_max = int(30000/train_batch_size*epochs) # for cosineannealingLR, explore different values
     weight_decay = 1e-6 # explore different weight decay (Adam optimizer)
@@ -135,7 +136,7 @@ set_seed(model_config.seed)
 #%%
 # add stratifiedkfold to df:
 new_df_train = train_df.copy(deep=True)
-strat_kfold = StratifiedKFold(shuffle = True, random_state = 42) #use default n_split = 5, random_state for reproducibility
+strat_kfold = StratifiedKFold(shuffle = True, random_state = 42,n_splits = model_config.CV_fold) # random_state for reproducibility
 composition_array = np.stack(new_df_train["composition"])  # Convert composition column to a numpy array
 target_array = np.sum(composition_array, axis=1)
 est = KBinsDiscretizer(n_bins=3, encode='ordinal', strategy='uniform')  # Adjust n_bins as needed
@@ -166,7 +167,7 @@ if save:
 #define transforms/image augmentation for the dataset, notice no normalization for grayscale/binary mask (can't do it, and it's not necessary)
 
 train_transform = A.Compose([
-    A.RandomCrop(height=512,width=512), # try 512 x 512 random crop...cant afford to lose resolution
+    # A.RandomCrop(height=512,width=512), # try 512 x 512 random crop...cant afford to lose resolution
     A.HorizontalFlip(p=0.5),
     A.VerticalFlip(p=0.5),
     #A.Normalize(mean=(0.8989, 0.9101, 0.9236), std=(0.0377, 0.0389, 0.0389)),
@@ -182,7 +183,6 @@ val_transform = A.Compose([
 #%%
 mean = torch.tensor([0.8989, 0.9101, 0.9236])
 std = torch.tensor([0.0377, 0.0389, 0.0389])
-
 # define the normalization function
 def normalize(image):
     image = image.float() / 255.0  # convert image to float and scale to [0, 1]
@@ -214,9 +214,9 @@ class TrainDataSet(Dataset):
             mask = cv2.imread(mask_path,0)
             mask = np.array(mask)
             mask_12ch = np.zeros((1024,1024,12), dtype=np.float32)
-            for class_idx in range(12):
+            for class_idx in range(1,13):
                 class_pixels = (np.array(mask) == class_idx)
-                mask_12ch[:, :, class_idx] = class_pixels.astype(np.float32)
+                mask_12ch[:, :, class_idx - 1] = class_pixels.astype(np.float32)
         if self.transforms is not None:
             transformed = self.transforms(image=image,mask=mask_12ch)
             image = transformed['image']
@@ -250,7 +250,7 @@ images, labels = next(iter(val_dataloader))
 print("Images have a tensor size of {}, and Labels have a tensor size of {}".
       format(images.size(),labels.size()))
 #%%
-visualize = True
+visualize = False
 if visualize:
     model_df_train = new_df_train.query("fold!=@fold").reset_index(drop=True)
     train_dataset = TrainDataSet(df = model_df_train, transforms = train_transform) # image,mask pair
@@ -291,7 +291,7 @@ if visualize:
 ### Now our problem is multilabel since labels are not mutually exclusive (each image can have more than one right answer, or label/classes). Therefore, we use sigmoid activation function for our logits (logits = raw output of model).
 #%%
 def build_model():
-    model = smp.UnetPlusPlus(encoder_name=model_config.encoder_name,encoder_weights = None, activation = "sigmoid", in_channels=3,classes=12)
+    model = smp.UnetPlusPlus(encoder_name=model_config.encoder_name,encoder_weights = "imagenet", activation = None, in_channels=3,classes=12,decoder_use_batchnorm = True)
     model.to(model_config.device) # model to gpu
     return model
 #%%
@@ -305,7 +305,7 @@ dice_loss_func = smp.losses.DiceLoss(mode='multilabel')
 bce_loss_func = smp.losses.SoftBCEWithLogitsLoss()
 
 def loss_func(y_pred,y_true): #weighted avg of the two, maybe explore different weighting if possible?
-    return  0.5 * dice_loss_func (y_pred,y_true) + 0.5 * bce_loss_func(y_pred,y_true)
+    return  0.5 * dice_loss_func(y_pred,y_true) + 0.5 * bce_loss_func(y_pred,y_true)
 
 #%% md
 ### Dice coef: 2*(A intersect B)/(A+B) for stratified K-fold CV to pick out best model:
@@ -367,16 +367,15 @@ def epoch_valid(model, dataloader, device, epoch):
     for idx, (images, masks) in pbar:
         images  = images.to(device, dtype=torch.float)
         masks   = masks.to(device, dtype=torch.float)
-        batch_size = images.size(0)
         y_pred  = model(images)
         loss    = loss_func(y_pred, masks)
 
-        running_loss += (loss.item() * batch_size) #update current running loss
+        running_loss += (loss.item() * model_config.valid_batch_size) #update current running loss
         dataset_size += batch_size #update current datasize
         epoch_loss = running_loss / dataset_size #divide epoch loss by current datasize
 
         y_pred = nn.Sigmoid()(y_pred) #sigmoid for multi-class
-        valid_dice = dice_coef(masks, y_pred).cpu.detach().numpy()
+        valid_dice = dice_coef(masks, y_pred).cpu().detach().numpy()
         valid_score_history.append(valid_dice)
 
         current_lr = optimizer.param_groups[0]['lr']
