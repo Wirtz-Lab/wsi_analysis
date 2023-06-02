@@ -34,7 +34,7 @@ from sklearn.preprocessing import KBinsDiscretizer
 #%% md
 ### Load train_df and calculate mean_std_dataset if not calculated:
 #%%
-train_df_src = r"\\shelter\Kyu\unstain2mask\main\new_train_df.xlsx"
+train_df_src = r"\\shelter\Kyu\unstain2mask\main\new_train_df2.xlsx"
 train_df = pd.read_excel(train_df_src)
 # de-string the comp and comp_freq:
 train_df["composition"] = train_df["composition"].apply(lambda x: np.fromstring(x[1:-1],dtype=np.float32, sep= ' '))
@@ -161,9 +161,9 @@ for fold, composition_sum in fold_composition_sum.items():
     print()
 #%%
 ### As we can see above, while not perfect, the stratification is pretty good! We can save this dataframe as well:
-save = False # just save once, the stratifiedfolds will always be the same since random seed is set
+save = True # just save once, the stratifiedfolds will always be the same since random seed is set
 if save:
-    new_df_train.to_excel(r"\\shelter\Kyu\unstain2mask\poc\train_df_stratified.xlsx")
+    new_df_train.to_excel(r"\\shelter\Kyu\unstain2mask\main\train_df_stratified.xlsx")
 #%% md
 ### Now define transforms:
 #%%
