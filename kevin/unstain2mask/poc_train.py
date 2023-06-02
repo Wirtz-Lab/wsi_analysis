@@ -106,16 +106,18 @@ if find_mean_std_dataset:
 # all model configs go here so that they can be changed when we want to:
 class model_config:
     seed = 42
-    encoder_name = "efficientnet-b4" #"tu-efficientnetv2_m" # from https://smp.readthedocs.io/en/latest/encoders_timm.html
-    train_batch_size = 4
-    valid_batch_size = 4
+    encoder_name = "timm-resnest200e" # "efficientnet-b4" #"tu-efficientnetv2_m" # from https://smp.readthedocs.io/en/latest/encoders_timm.html
+    train_batch_size = 2
+    valid_batch_size = 2
     epochs = 5
     learning_rate = 0.001
-    CV_fold = 3 # number of folds of CV for train-valid
+    CV_fold = 10 # number of folds of CV for train-valid
     scheduler = "CosineAnnealingLR"
     T_max = int(30000/train_batch_size*epochs) # for cosineannealingLR, explore different values
     weight_decay = 1e-6 # explore different weight decay (Adam optimizer)
     n_accumulate = 1
+    dice_alpha = 0.8 # weight for dice loss (unbalanced dataset, so higher weight for dice)
+    bce_alpha = 0.2 # weight for bce loss
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     iters_to_accumulate = max(1,32//train_batch_size) # for scaling accumulated gradients
     eta_min = 1e-5
@@ -305,7 +307,7 @@ dice_loss_func = smp.losses.DiceLoss(mode='multilabel')
 bce_loss_func = smp.losses.SoftBCEWithLogitsLoss()
 
 def loss_func(y_pred,y_true): #weighted avg of the two, maybe explore different weighting if possible?
-    return  0.5 * dice_loss_func(y_pred,y_true) + 0.5 * bce_loss_func(y_pred,y_true)
+    return  model_config.dice_alpha * dice_loss_func(y_pred,y_true) + model_config.bce_alpha * bce_loss_func(y_pred,y_true)
 
 #%% md
 ### Dice coef: 2*(A intersect B)/(A+B) for stratified K-fold CV to pick out best model:
@@ -330,7 +332,7 @@ def epoch_train(model, optimizer, scheduler, dataloader, device, epoch):
     for idx, (images, masks) in pbar:
         images = images.to(device, dtype=torch.float) # move tensor to gpu
         masks  = masks.to(device, dtype=torch.float) # move tensor to gpu
-        batch_size = images.size(0) # return batch size N.
+        batch_size = model_config.train_batch_size # return batch size N.
 
         with autocast(enabled=True,dtype=torch.float16): # enable autocast for forward pass
             y_pred = model(images) # forward pass, get y_pred from input
@@ -371,7 +373,7 @@ def epoch_valid(model, dataloader, device, epoch):
         loss    = loss_func(y_pred, masks)
 
         running_loss += (loss.item() * model_config.valid_batch_size) #update current running loss
-        dataset_size += batch_size #update current datasize
+        dataset_size += model_config.valid_batch_size #update current datasize
         epoch_loss = running_loss / dataset_size #divide epoch loss by current datasize
 
         y_pred = nn.Sigmoid()(y_pred) #sigmoid for multi-class
@@ -453,7 +455,7 @@ if model_config == "CosineAnnealingLR": # change to CosineAnnealingLR
                                                eta_min =  model_config.eta_min)
 #%%
 # Run Training!
-for fold in range(5):
+for fold in range(model_config.CV_fold):
     print(f'Fold: {fold}')
     train_dataloader, valid_dataloader = load_dataset(fold = fold)
     model     = build_model()
