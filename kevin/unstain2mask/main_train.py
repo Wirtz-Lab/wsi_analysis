@@ -37,9 +37,9 @@ from sklearn.preprocessing import KBinsDiscretizer
 train_df_src = r"\\shelter\Kyu\unstain2mask\main\new_train_df.xlsx"
 train_df = pd.read_excel(train_df_src)
 # de-string the comp and comp_freq:
-# train_df["composition"] = train_df["composition"].apply(lambda x: np.fromstring(x[1:-1],dtype=np.float32, sep= ' '))
-# train_df["composition_freq"] = train_df["composition_freq"].apply(lambda x: np.fromstring(x[1:-1],dtype=np.float32, sep= ' '))
-# train_df
+train_df["composition"] = train_df["composition"].apply(lambda x: np.fromstring(x[1:-1],dtype=np.float32, sep= ' '))
+train_df["composition_freq"] = train_df["composition_freq"].apply(lambda x: np.fromstring(x[1:-1],dtype=np.float32, sep= ' '))
+train_df
 #%%
 find_mean_std_dataset = False# if false, already found it. Turn to true if you want to find std of mean of another dataset.
 
@@ -102,7 +102,7 @@ if find_mean_std_dataset:
     print('std:  ' + str(total_std))
 
     #poc = mean=[0.8989, 0.9101, 0.9236], std=[0.0377, 0.0389, 0.0389]
-    #main =
+    #main = mean=[0.8989, 0.9106, 0.9245], std=[0.0393, 0.0389, 0.0409]
 #%%
 # all model configs go here so that they can be changed when we want to:
 class model_config:
@@ -183,9 +183,9 @@ val_transform = A.Compose([
     ToTensorV2(),
     #A.Normalize(mean=(0.8989, 0.9101, 0.9236), std=(0.0377, 0.0389, 0.0389)) #calculated above mean & std
 ])
-#%%
-mean = torch.tensor([0.8989, 0.9101, 0.9236])
-std = torch.tensor([0.0377, 0.0389, 0.0389])
+#%% mean=[0.8989, 0.9106, 0.9245], std=[0.0393, 0.0389, 0.0409]
+mean = torch.tensor([0.8989, 0.9106, 0.9245],)
+std = torch.tensor([0.0393, 0.0389, 0.0409])
 # define the normalization function
 def normalize(image):
     image = image.float() / 255.0  # convert image to float and scale to [0, 1]
