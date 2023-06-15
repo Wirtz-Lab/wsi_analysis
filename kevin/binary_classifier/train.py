@@ -254,7 +254,7 @@ def epoch_train(model, optimizer, scheduler, dataloader, device, epoch):
     for idx, (images, labels) in pbar:
         images = images.to(device, dtype=torch.float) # move tensor to gpu
         labels  = labels.to(device, dtype=torch.float) # move tensor to gpu
-        batch_size = images.size(0) # return batch size (N*C*H*W), or N (64)
+        batch_size = model_config.train_batch_size# return batch size (N*C*H*W)
 
         with autocast(enabled=True,dtype=torch.float16): # enable autocast for forward pass
             y_pred = model(images) # forward pass, get y_pred from input
@@ -269,8 +269,8 @@ def epoch_train(model, optimizer, scheduler, dataloader, device, epoch):
             optimizer.zero_grad() # zero the accumulated scaled gradients
             scheduler.step() # change lr,make sure to call this after scaler.step
 
-        running_loss += (loss.item() * batch_size) # update current running loss for all images in batch
-        dataset_size += batch_size # update current datasize
+        running_loss += (loss.item() * model_config.train_batch_size) # update current running loss for all images in batch
+        dataset_size += model_config.train_batch_size # update current datasize
 
         epoch_loss = running_loss / dataset_size # get current epoch average loss
         current_lr = optimizer.param_groups[0]['lr']
@@ -294,7 +294,7 @@ def epoch_valid(model, dataloader, device, epoch):
     for idx, (images, labels) in pbar:
         images  = images.to(device, dtype=torch.float)
         labels   = labels.to(device, dtype=torch.float)
-        batch_size = images.size(0)
+        batch_size = model_config.valid_batch_size
         y_pred  = model(images)
         labels = labels.unsqueeze(1)
         loss    = loss_func(y_pred, labels)
@@ -387,7 +387,7 @@ if model_config == "CosineAnnealingLR": # change to CosineAnnealingLR
                                                eta_min =  model_config.eta_min)
 #%%
 # Run Training!
-for fold in range(5):
+for fold in range(3): # used to be 5
     print(f'Fold: {fold}')
     train_dataloader, valid_dataloader = load_dataset(fold = fold)
     model     = build_model()
