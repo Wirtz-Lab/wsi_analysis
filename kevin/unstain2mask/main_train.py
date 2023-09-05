@@ -337,6 +337,8 @@ def epoch_train(model, optimizer, scheduler, dataloader, device, epoch):
 
         with autocast(enabled=True,dtype=torch.float16): # enable autocast for forward pass
             y_pred = model(images) # forward pass, get y_pred from input
+            print(y_pred[0].dtype)
+            print(masks[0].dtype)
             loss   = loss_func(y_pred, masks) # compute losses from y_pred
             loss   = loss / model_config.iters_to_accumulate # need to normalize since accumulating gradients
         scaler.scale(loss).backward() # accumulates the scaled gradients
