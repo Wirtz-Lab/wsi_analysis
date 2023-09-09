@@ -461,7 +461,7 @@ for fold in range(0, (model_config.total_fold - start_fold) + 1):
     model, history = run_training(model, optimizer, scheduler,
                                   device=model_config.device,
                                   num_epochs=model_config.epochs, fold=current_fold)  # run training for each fold
-    pkl_save_path = os.path.join(model_config.model_save_directory, f"history-{current_fold:02d}.pt")
+    pkl_save_path = os.path.join(model_config.model_save_directory, f"history-{current_fold:02d}.pickle")
     # save history as pkl:
     with open(pkl_save_path, 'wb') as file:
         pickle.dump(history, file)
