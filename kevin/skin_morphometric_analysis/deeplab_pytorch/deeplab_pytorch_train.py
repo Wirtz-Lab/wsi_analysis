@@ -61,7 +61,7 @@ class model_config:
     iters_to_accumulate = max(1, 32 // train_batch_size)  # for scaling accumulated gradients, should never be <1
     eta_min = 1e-5
     model_save_directory = os.path.join(os.getcwd(), "model",
-                                        "DeepLabV3+_baseline")  # assuming os.getcwd is the current training script directory
+                                        "DeepLabV3+_baseline_resnet101")  # assuming os.getcwd is the current training script directory
 
 
 # %%
@@ -251,7 +251,7 @@ def build_model():
         model = smp.DeepLabV3Plus(encoder_name="resnet50", encoder_weights=model_config.key, encoder_depth=5,
                                   decoder_channels=512, activation=None, in_channels=3, classes=13)
     else:  # try different encoders
-        model = smp.DeepLabV3Plus(encoder_name="resnet50", encoder_weights="imagenet", encoder_depth=5,
+        model = smp.DeepLabV3Plus(encoder_name="resnet101", encoder_weights="imagenet", encoder_depth=5,
                                   decoder_channels=512, activation=None,
                                   in_channels=3, classes=13)
     model.to(model_config.device)  # move model to gpu
