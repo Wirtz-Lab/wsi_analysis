@@ -61,7 +61,7 @@ class model_config:
     iters_to_accumulate = max(1, 32 // train_batch_size)  # for scaling accumulated gradients, should never be <1
     eta_min = 1e-5
     model_save_directory = os.path.join(os.getcwd(), "model",
-                                        "DeepLabV3+_baseline_resnet101")  # assuming os.getcwd is the current training script directory
+                                        "DeepLabV3+_baseline_resnet50")  # assuming os.getcwd is the current training script directory
 
 
 # %%
@@ -89,7 +89,7 @@ train_transforms = A.Compose([
 val_transforms = A.Compose([ToTensorV2()])
 # %%
 # for current fold, get the image and mask paths accordingly:
-data_src = r"C:\Users\Kevin\Desktop\deeplab_trainingset"
+data_src = r"\\10.99.68.178\kyuex\image\skin_aging\deeplab_trainingset"
 fold_dir = r"v11_fold{}".format(model_config.start_fold)
 image_path = os.path.join(data_src, fold_dir)
 train_dir = os.path.join(image_path, "training")
@@ -240,10 +240,8 @@ def resnet50(pretrained, progress, key, **kwargs):
         print(verbose)
     return model
 
-
 if model_config.pretrained_resnet:
     pretrained_url = get_pretrained_url(model_config.key)
-
 
 # %%
 def build_model():
@@ -251,7 +249,7 @@ def build_model():
         model = smp.DeepLabV3Plus(encoder_name="resnet50", encoder_weights=model_config.key, encoder_depth=5,
                                   decoder_channels=512, activation=None, in_channels=3, classes=13)
     else:  # try different encoders
-        model = smp.DeepLabV3Plus(encoder_name="resnet101", encoder_weights="imagenet", encoder_depth=5,
+        model = smp.DeepLabV3Plus(encoder_name="resnet50", encoder_weights="imagenet", encoder_depth=5,
                                   decoder_channels=512, activation=None,
                                   in_channels=3, classes=13)
     model.to(model_config.device)  # move model to gpu
@@ -262,14 +260,11 @@ def build_model():
 # define loss function and validation metric f1-score:
 def loss_func(y_pred: torch.Tensor, y_true: torch.Tensor):
     return nn.CrossEntropyLoss()(y_pred, y_true)  # has softmax built in to it.
-
-
 def calculate_f1_score(y_pred: torch.Tensor, y_true: torch.Tensor):  # y_pred in probabilities
     y_pred = y_pred.cpu().numpy().flatten()  # 1d numpy array
     y_true = y_true.cpu().numpy().flatten()  # 1d numpy array
     return f1_score(y_pred, y_true,
                     average="weighted")  # macro = unweighted mean, so more frequent label is heavily influenced, whereas weighted = weighted mean, accounts for label imbalance.
-
 
 # %%
 # code to train one epoch:
@@ -290,8 +285,7 @@ def epoch_train(model, optimizer, scheduler, dataloader, device, epoch):
                              masks)  # nn.Crossentropy requires specifically above sizes to compute losses from y_pred
             loss = loss / model_config.iters_to_accumulate  # need to normalize since accumulating gradients
         scaler.scale(loss).backward()  # backward pass, make sure it is not within autocast
-        if (
-                idx + 1) % model_config.iters_to_accumulate == 0:  # scale updates should only happen at each # of iters to accumulate
+        if (idx + 1) % model_config.iters_to_accumulate == 0:  # scale updates should only happen at each # of iters to accumulate
             scaler.step(optimizer)  # take optimizer step
             scaler.update()  # update scale for next iteration
             optimizer.zero_grad()  # zero the accumulated scaled gradients
@@ -305,7 +299,6 @@ def epoch_train(model, optimizer, scheduler, dataloader, device, epoch):
     torch.cuda.empty_cache()  # clear gpu memory after every epoch
     gc.collect()  # collect garbage
     return epoch_loss  # return loss for this epoch
-
 
 # %%
 # code to visualize images during validation to check training is progressing:
@@ -325,8 +318,6 @@ def visualize_images_validation(image, mask, y_pred, epoch):
     axes[2].set_title("Model Predicted Validation Mask for epoch {}".format(epoch))
     axes[2].axis("off")
     plt.show()
-
-
 # %%
 @torch.no_grad()  # disable gradient calc for validation
 def epoch_valid(model, dataloader, device, epoch):
@@ -364,7 +355,6 @@ def epoch_valid(model, dataloader, device, epoch):
     gc.collect()  # collect garbage
 
     return epoch_loss, valid_f1_history  # return loss and AP for this epoch
-
 
 # %%
 # function that utilizes above train and validation function to iterate them over training epochs, master train code.
@@ -427,7 +417,7 @@ def run_training(model, optimizer, scheduler, device, num_epochs, fold):
 
 # %%
 # finally run training:
-data_src = r"C:\Users\Kevin\Desktop\deeplab_trainingset"
+data_src = r"\\10.99.68.178\kyuex\image\skin_aging\deeplab_trainingset"
 start_fold = model_config.start_fold
 
 # repeat for all number of folds:
@@ -448,6 +438,8 @@ for fold in range(0, (model_config.total_fold - start_fold) + 1):
     val_image_dir = os.path.join(val_dir, "im")
     val_label_dir = os.path.join(val_dir, 'label')
     val_images = natsorted([os.path.join(val_image_dir, x) for x in os.listdir(val_image_dir) if x.endswith(".png")])
+    val_labels = natsorted([os.path.join(val_label_dir, x) for x in os.listdir(val_label_dir) if x.endswith(".png")])
+
     train_dataloader, valid_dataloader = load_dataset()  # load datasets
     model = build_model()  # build model
     # print(model)
