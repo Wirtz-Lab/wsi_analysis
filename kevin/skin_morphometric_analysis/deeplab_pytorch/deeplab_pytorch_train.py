@@ -50,7 +50,7 @@ class model_config:
     train_batch_size = 4
     valid_batch_size = 8
     epochs = 300
-    patience = int(epochs / 10)
+    patience = int(epochs / 30)
     learning_rate = 0.002  # 0.001 for bs=16
     scheduler = "CosineAnnealingLR"  # explore different lr schedulers, with cosineannealingLR, at T_max, the learning rate will be about half of initial lr above.
     num_training_samples = 160
@@ -61,7 +61,7 @@ class model_config:
     iters_to_accumulate = max(1, 32 // train_batch_size)  # for scaling accumulated gradients, should never be <1
     eta_min = 1e-5
     model_save_directory = os.path.join(os.getcwd(), "model",
-                                        "DeepLabV3+_baseline_resnet50")  # assuming os.getcwd is the current training script directory
+                                        "DeepLabV3+_different_loss_func")  # assuming os.getcwd is the current training script directory
 
 
 # %%
@@ -250,16 +250,23 @@ def build_model():
                                   decoder_channels=512, activation=None, in_channels=3, classes=13)
     else:  # try different encoders
         model = smp.DeepLabV3Plus(encoder_name="resnet50", encoder_weights="imagenet", encoder_depth=5,
-                                  decoder_channels=512, activation=None,
-                                  in_channels=3, classes=13)
+                                  decoder_channels=512, activation=None, in_channels=3, classes=13)
+
+        # model = smp.UnetPlusPlus(encoder_name="resnet50", encoder_weights="imagenet", encoder_depth=5,
+        #                           decoder_channels=[512, 256, 128, 64, 32], activation=None,
+        #                           in_channels=3, classes=13)
+
     model.to(model_config.device)  # move model to gpu
     return model
 
 
 # %%
 # define loss function and validation metric f1-score:
+dice_loss_func = smp.losses.DiceLoss(mode = "multiclass",from_logits="True")
+focal_loss_func = smp.losses.FocalLoss(mode="multiclass",gamma = 2.5) # default gamma = 2.0
 def loss_func(y_pred: torch.Tensor, y_true: torch.Tensor):
-    return nn.CrossEntropyLoss()(y_pred, y_true)  # has softmax built in to it.
+    return 0.5 * dice_loss_func(y_pred,y_true) + 0.5 * focal_loss_func(y_pred,y_true)
+    # return nn.CrossEntropyLoss()(y_pred, y_true)  # has softmax built in to it.
 def calculate_f1_score(y_pred: torch.Tensor, y_true: torch.Tensor):  # y_pred in probabilities
     y_pred = y_pred.cpu().numpy().flatten()  # 1d numpy array
     y_true = y_true.cpu().numpy().flatten()  # 1d numpy array
