@@ -61,7 +61,7 @@ class model_config:
     iters_to_accumulate = max(1, 32 // train_batch_size)  # for scaling accumulated gradients, should never be <1
     eta_min = 1e-5
     model_save_directory = os.path.join(os.getcwd(), "model",
-                                        "DeepLabV3+_different_loss_func")  # assuming os.getcwd is the current training script directory
+                                        givename)  # assuming os.getcwd is the current training script directory
 
 
 # %%
@@ -84,9 +84,12 @@ set_seed(model_config.seed)  # set seed first
 train_transforms = A.Compose([
     A.GaussNoise(p=0.2),
     A.ToGray(p=0.2),
+    # A.Normalize(mean=(0.485,0.456,0.406),std=(0.229, 0.224, 0.225)),
     ToTensorV2()  # V2 converts tensor to CHW automatically
 ])
-val_transforms = A.Compose([ToTensorV2()])
+val_transforms = A.Compose([
+    # A.Normalize(mean=(0.485,0.456,0.406),std=(0.229, 0.224, 0.225)),
+                            ToTensorV2()])
 # %%
 # for current fold, get the image and mask paths accordingly:
 data_src = r"\\10.99.68.178\kyuex\image\skin_aging\deeplab_trainingset"
@@ -265,8 +268,8 @@ def build_model():
 dice_loss_func = smp.losses.DiceLoss(mode = "multiclass",from_logits="True")
 focal_loss_func = smp.losses.FocalLoss(mode="multiclass",gamma = 2.5) # default gamma = 2.0
 def loss_func(y_pred: torch.Tensor, y_true: torch.Tensor):
-    return 0.5 * dice_loss_func(y_pred,y_true) + 0.5 * focal_loss_func(y_pred,y_true)
-    # return nn.CrossEntropyLoss()(y_pred, y_true)  # has softmax built in to it.
+    # return 0.5 * dice_loss_func(y_pred,y_true) + 0.5 * focal_loss_func(y_pred,y_true)
+    return nn.CrossEntropyLoss()(y_pred, y_true)  # has softmax built in to it.
 def calculate_f1_score(y_pred: torch.Tensor, y_true: torch.Tensor):  # y_pred in probabilities
     y_pred = y_pred.cpu().numpy().flatten()  # 1d numpy array
     y_true = y_true.cpu().numpy().flatten()  # 1d numpy array

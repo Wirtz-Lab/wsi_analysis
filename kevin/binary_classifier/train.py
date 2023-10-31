@@ -30,7 +30,7 @@ from collections import defaultdict
 from sklearn.metrics import f1_score
 #%%
 #define dataset and dataloaders
-train_df_src = r'\\fatherserverdw\Kevin\unstained_blank_classifier\train_df.xlsx'
+train_df_src = r'\\10.99.68.178\Kevin\unstained_blank_classifier\train_df.xlsx'
 train_df = pd.read_excel(train_df_src) # 1= white , 0=nonwhite, unbalanced, 79271 0's and 195376 1's. Need stratifiedgroupKfold for CV.
 train_df = train_df.drop(columns="Unnamed: 0")
 train_df
